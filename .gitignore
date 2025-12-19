@@ -34,6 +34,9 @@ config/production.toml
 config/secrets.toml
 config/*.secret
 
+# Testing and development guides (optional - user preference)
+TESTING_GUIDE.md
+
 # Credentials and passwords
 credentials.txt
 passwords.txt

@@ -10,8 +10,10 @@ A Rust-based REST API service for fetching, caching, and serving space weather d
 - ✅ 1.2 (Configuration System)
 - ✅ 1.3 (Logging & Error Handling)
 - ✅ 2.1 (Basic HTTP Server)
+- ✅ 2.2 (REST API Structure)
+- ✅ 2.3 (Data Models)
 
-**Next Step**: 2.2 (REST API Structure)
+**Next Step**: 3.1 (NOAA API Integration)
 
 ### What's Been Completed
 
@@ -63,8 +65,11 @@ Rusty_Server will host a REST API service for fetching, caching, and serving spa
 - ✅ Request/response logging middleware
 - ✅ HTTP server with health check endpoints
 - ✅ Graceful shutdown handling
+- ✅ REST API endpoints (current, historical, alerts, radiation)
+- ✅ Request/response models for space weather data
+- ✅ Data validation system (14 validation tests passing)
+- ✅ Mock data handlers (ready for real data integration)
 - ✅ Module structure for all components
-- ⏳ REST API endpoints (next step)
 - ⏳ Database integration (planned)
 - ⏳ NOAA API integration (planned)
 - ⏳ Caching layer (planned)
@@ -193,15 +198,40 @@ Rusty_Server/
 
 ## Testing
 
-Run tests with:
+### Running Tests
+
 ```bash
+# Run all tests
 cargo test
+
+# Run only unit tests
+cargo test --lib
+
+# Run only integration tests
+cargo test --test
 ```
 
-Test coverage includes:
-- Unit tests for individual modules
-- Integration tests for API workflows
-- Configuration validation tests
+**Test Results**: 28 tests passing
+- 22 unit tests (models, config, errors, logging)
+- 4 API integration tests
+- 2 health check tests
+
+### Testing the API
+
+**📋 See [TESTING_GUIDE.md](TESTING_GUIDE.md) for complete testing instructions**, including:
+- Local testing
+- Testing from another device on your WiFi
+- Windows Firewall configuration
+- Troubleshooting tips
+
+**Quick Start:**
+```bash
+# Start the server
+cargo run
+
+# Test health endpoint (in another terminal)
+Invoke-WebRequest -Uri http://localhost:3000/health -UseBasicParsing
+```
 
 ## Security Considerations
 

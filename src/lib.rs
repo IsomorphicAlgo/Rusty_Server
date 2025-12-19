@@ -14,4 +14,5 @@ pub mod server;
 pub use errors::{AppError, Result, ResultExt};
 pub use config::Config;
 pub use server::start_server;
+pub use models::*;
 

@@ -1,28 +1,29 @@
 use rusty_server::config::Config;
-use rusty_server::{Result, ResultExt};
+use rusty_server::Result;
 use rusty_server::logging;
 use rusty_server::api::create_router;
 use rusty_server::start_server;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Initialize basic logging first (before config loading)
-    // This allows us to log config errors
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
-        .init();
-
-    // Load configuration
-    let config = Config::load()
-        .map_err(|e| rusty_server::AppError::Config(e))
-        .log_error()?;
+    // Load configuration first (before logging initialization)
+    let config = match Config::load() {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            eprintln!("Failed to load configuration: {}", e);
+            eprintln!("Using default configuration values.");
+            // Return error or use defaults - for now, return error
+            return Err(rusty_server::AppError::Config(e));
+        }
+    };
 
     // Validate configuration
-    config.validate()
-        .map_err(|e| rusty_server::AppError::Validation(e))
-        .log_error()?;
+    if let Err(e) = config.validate() {
+        eprintln!("Configuration validation failed: {}", e);
+        return Err(rusty_server::AppError::Validation(e));
+    }
 
-    // Re-initialize logging with configured settings
+    // Initialize logging with configured settings (only once)
     logging::init_logging(&config.logging.level, &config.logging.format);
 
     // Log startup information
