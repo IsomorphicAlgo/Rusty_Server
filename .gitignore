@@ -16,10 +16,29 @@ Cargo.lock
 *~
 .DS_Store
 
-# Environment variables
+# Environment variables and secrets
 .env
 .env.local
 .env.*.local
+.env.production
+.env.development
+*.env
+secrets/
+*.secret
+*.key
+*.pem
+
+# Configuration files with secrets
+config/local.toml
+config/production.toml
+config/secrets.toml
+config/*.secret
+
+# Credentials and passwords
+credentials.txt
+passwords.txt
+*.credentials
+db_credentials.txt
 
 # Logs
 *.log
@@ -30,10 +49,6 @@ logs/
 *.sqlite
 *.sqlite3
 
-# Configuration (if contains secrets)
-config/local.toml
-config/production.toml
-
 # Build artifacts
 dist/
 build/
@@ -42,3 +57,8 @@ build/
 Thumbs.db
 .DS_Store
 
+
+
+# Added by cargo
+
+/target

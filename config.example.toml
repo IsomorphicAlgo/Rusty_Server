@@ -1,0 +1,54 @@
+# Rusty Server Configuration Example
+# 
+# SECURITY WARNING: This is an EXAMPLE file. 
+# 
+# For local development:
+#   1. Copy this to config/local.toml (which is gitignored)
+#   2. Fill in your actual credentials
+#   3. NEVER commit config/local.toml to git
+#
+# For production:
+#   - Use environment variables instead of config files
+#   - See SECURITY.md for best practices
+#
+# To use this config, set: CONFIG_FILE=config.toml
+
+[server]
+host = "0.0.0.0"
+port = 3000
+
+[database]
+# SECURITY: Replace with your actual database credentials
+# Use environment variable RUSTY_SERVER__DATABASE__CONNECTION_STRING for production
+connection_string = "mysql://USERNAME:PASSWORD@localhost/rusty_server"
+max_connections = 10
+
+[noaa]
+base_url = "https://services.swpc.noaa.gov"
+# SECURITY: If you have an API key, use environment variable RUSTY_SERVER__NOAA__API_KEY
+api_key = ""  # Optional: Set via RUSTY_SERVER__NOAA__API_KEY environment variable
+timeout_seconds = 30
+
+[cache]
+current_conditions_ttl_seconds = 900   # 15 minutes
+historical_data_ttl_seconds = 3600     # 1 hour
+alerts_ttl_seconds = 300                # 5 minutes
+max_size_mb = 100
+
+[rate_limit]
+requests_per_minute = 60
+requests_per_hour = 1000
+burst_size = 10
+
+[auth]
+# SECURITY: Generate a strong random secret for production!
+# Use environment variable RUSTY_SERVER__AUTH__JWT_SECRET for production
+# Generate with: openssl rand -base64 32
+jwt_secret = "change-me-in-production"  # MUST change in production!
+token_expiry_hours = 24
+require_auth = false  # Set to true to require authentication for all endpoints
+
+[logging]
+level = "info"  # trace, debug, info, warn, error
+format = "pretty"  # "pretty" or "json"
+
