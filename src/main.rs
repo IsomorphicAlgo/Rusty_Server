@@ -1,6 +1,8 @@
 use rusty_server::config::Config;
 use rusty_server::{Result, ResultExt};
 use rusty_server::logging;
+use rusty_server::api::create_router;
+use rusty_server::start_server;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -26,18 +28,19 @@ async fn main() -> Result<()> {
     // Log startup information
     logging::log_startup(&config);
 
+    // Create the API router
+    let router = create_router();
+
     // TODO: Initialize database connection pool
     // TODO: Initialize cache
-    // TODO: Set up HTTP server with routes
-    // TODO: Start server
+    // TODO: Add middleware (logging, error handling, etc.)
 
     tracing::info!("Rusty Server initialized successfully");
 
-    // For now, just wait (will be replaced with server startup)
-    tokio::signal::ctrl_c()
+    // Start the HTTP server
+    start_server(router, &config.server.host, config.server.port)
         .await
-        .expect("Failed to install CTRL+C signal handler");
+        .map_err(|e| rusty_server::AppError::Internal(format!("Server error: {}", e)))?;
 
-    tracing::info!("Shutting down gracefully...");
     Ok(())
 }

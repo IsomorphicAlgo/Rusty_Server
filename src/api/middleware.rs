@@ -1,10 +1,9 @@
 use axum::{
     extract::Request,
-    http::StatusCode,
     middleware::Next,
     response::Response,
 };
-use tracing::{info, warn, error, Span};
+use tracing::{info, warn, error};
 use std::time::Instant;
 
 /// Middleware for logging HTTP requests and responses
@@ -96,6 +95,9 @@ pub async fn error_handling_middleware(
     request: Request,
     next: Next,
 ) -> Response {
+    // Extract URI before moving request
+    let uri = request.uri().clone();
+    
     let response = next.run(request).await;
     
     // Log errors based on status code
@@ -103,7 +105,7 @@ pub async fn error_handling_middleware(
     if status.is_server_error() {
         error!(
             status = %status.as_u16(),
-            uri = %request.uri(),
+            uri = %uri,
             "Server error occurred"
         );
     }

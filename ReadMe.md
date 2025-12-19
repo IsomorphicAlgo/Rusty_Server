@@ -4,13 +4,14 @@ A Rust-based REST API service for fetching, caching, and serving space weather d
 
 ## Project Status
 
-**Current Phase**: Phase 1 - Project Foundation & Setup  
+**Current Phase**: Phase 2 - Core API Infrastructure  
 **Completed Steps**: 
 - ✅ 1.1 (Project Structure & Dependencies)
 - ✅ 1.2 (Configuration System)
 - ✅ 1.3 (Logging & Error Handling)
+- ✅ 2.1 (Basic HTTP Server)
 
-**Next Step**: 2.1 (Basic HTTP Server)
+**Next Step**: 2.2 (REST API Structure)
 
 ### What's Been Completed
 
@@ -60,8 +61,10 @@ Rusty_Server will host a REST API service for fetching, caching, and serving spa
 - ✅ Error handling system with status codes and logging
 - ✅ Structured logging (pretty and JSON formats)
 - ✅ Request/response logging middleware
+- ✅ HTTP server with health check endpoints
+- ✅ Graceful shutdown handling
 - ✅ Module structure for all components
-- ⏳ HTTP server (next step)
+- ⏳ REST API endpoints (next step)
 - ⏳ Database integration (planned)
 - ⏳ NOAA API integration (planned)
 - ⏳ Caching layer (planned)
@@ -80,7 +83,7 @@ Rusty_Server will host a REST API service for fetching, caching, and serving spa
 ### Prerequisites
 
 - Rust toolchain (latest stable)
-- MySQL (for database)
+- MySQL (for database) - **See [MYSQL_SETUP_GUIDE.md](MYSQL_SETUP_GUIDE.md)**
 - Git (for version control)
 
 ### Setup
@@ -91,7 +94,12 @@ Rusty_Server will host a REST API service for fetching, caching, and serving spa
    cd Rusty_Server
    ```
 
-2. **Configure the application**:
+2. **Set up MySQL** (for local development):
+   - **📋 See [MYSQL_SETUP_GUIDE.md](MYSQL_SETUP_GUIDE.md) for detailed instructions**
+   - Create a MySQL user and database
+   - Fill out `credentials.txt` with your MySQL credentials
+
+3. **Configure the application**:
    ```bash
    # Copy example config
    cp config.example.toml config.toml
@@ -100,17 +108,22 @@ Rusty_Server will host a REST API service for fetching, caching, and serving spa
    # Or use environment variables (see Configuration section)
    ```
 
-3. **Set up environment variables** (optional):
+4. **Set up credentials**:
    ```bash
-   # Create .env file (not committed to git)
-   # See config.example.toml for available options
+   # Copy credentials template
+   cp credentials.example.txt credentials.txt
+   
+   # Edit credentials.txt with your MySQL username, password, etc.
+   # This file is gitignored - your secrets are safe!
    ```
 
-4. **Build and run**:
+5. **Build and run**:
    ```bash
    cargo build
    cargo run
    ```
+
+**📋 For server deployment (much later), see [SERVER_DEPLOYMENT_NOTES.md](SERVER_DEPLOYMENT_NOTES.md)**
 
 ## Configuration
 

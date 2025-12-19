@@ -12,7 +12,7 @@ categories = ["web-programming", "science"]
 [dependencies]
 # Web framework
 axum = { version = "0.7", features = ["macros"] }
-tower = "0.4"
+tower = { version = "0.4", features = ["util"] }
 tower-http = { version = "0.5", features = ["cors", "trace"] }
 tokio = { version = "1", features = ["full"] }
 
@@ -53,3 +53,6 @@ uuid = { version = "1.6", features = ["v4", "serde"] }
 
 [dev-dependencies]
 tokio-test = "0.4"
+tower = { version = "0.4", features = ["util"] }
+hyper = { version = "1", features = ["full"] }
+axum = { version = "0.7", features = ["macros"] }

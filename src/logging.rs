@@ -1,5 +1,5 @@
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Registry};
-use tracing_subscriber::fmt::{self, FormatFields, MakeWriter};
+use tracing_subscriber::fmt;
 use std::io;
 
 /// Initialize the logging system based on configuration

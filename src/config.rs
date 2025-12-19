@@ -146,8 +146,10 @@ impl Config {
             .set_default("server.host", "0.0.0.0")?
             .set_default("server.port", 3000)?
             .set_default("database.max_connections", 10)?
+            .set_default("database.connection_string", "mysql://user:password@localhost/rusty_server")?
             .set_default("noaa.base_url", "https://services.swpc.noaa.gov")?
             .set_default("noaa.timeout_seconds", 30)?
+            .set_default("noaa.api_key", "")?
             .set_default("cache.current_conditions_ttl_seconds", 900)?
             .set_default("cache.historical_data_ttl_seconds", 3600)?
             .set_default("cache.alerts_ttl_seconds", 300)?
@@ -155,6 +157,7 @@ impl Config {
             .set_default("rate_limit.requests_per_minute", 60)?
             .set_default("rate_limit.requests_per_hour", 1000)?
             .set_default("rate_limit.burst_size", 10)?
+            .set_default("auth.jwt_secret", "change-me-in-production")?
             .set_default("auth.token_expiry_hours", 24)?
             .set_default("auth.require_auth", false)?
             .set_default("logging.level", "info")?
