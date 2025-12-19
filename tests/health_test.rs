@@ -3,11 +3,21 @@ use axum::{
     http::{Request, StatusCode},
 };
 use rusty_server::api::create_router;
+use rusty_server::{AppState, services::NoaaClient};
 use tower::util::ServiceExt;
+
+fn create_test_state() -> AppState {
+    let noaa_client = NoaaClient::new(
+        "https://services.swpc.noaa.gov".to_string(),
+        None,
+        30,
+    );
+    AppState::new(noaa_client)
+}
 
 #[tokio::test]
 async fn test_health_check() {
-    let app = create_router();
+    let app = create_router(create_test_state());
 
     let response = app
         .oneshot(
@@ -31,7 +41,7 @@ async fn test_health_check() {
 
 #[tokio::test]
 async fn test_health_check_api_v1() {
-    let app = create_router();
+    let app = create_router(create_test_state());
 
     let response = app
         .oneshot(

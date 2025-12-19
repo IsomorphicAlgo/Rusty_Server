@@ -3,6 +3,8 @@ use rusty_server::Result;
 use rusty_server::logging;
 use rusty_server::api::create_router;
 use rusty_server::start_server;
+use rusty_server::services::NoaaClient;
+use rusty_server::AppState;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -29,8 +31,18 @@ async fn main() -> Result<()> {
     // Log startup information
     logging::log_startup(&config);
 
+    // Initialize NOAA API client
+    let noaa_client = NoaaClient::new(
+        config.noaa.base_url.clone(),
+        config.noaa.api_key.clone(),
+        config.noaa.timeout_seconds,
+    );
+
+    // Create application state
+    let app_state = AppState::new(noaa_client);
+
     // Create the API router
-    let router = create_router();
+    let router = create_router(app_state);
 
     // TODO: Initialize database connection pool
     // TODO: Initialize cache

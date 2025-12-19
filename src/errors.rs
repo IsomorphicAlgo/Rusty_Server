@@ -1,3 +1,9 @@
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
+use serde_json::json;
 use thiserror::Error;
 use tracing::{error, warn};
 
@@ -87,6 +93,24 @@ impl AppError {
             self,
             AppError::Config(_) | AppError::Database(_) | AppError::Io(_) | AppError::Internal(_)
         )
+    }
+}
+
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
+        // Log the error
+        self.log();
+
+        let status = StatusCode::from_u16(self.status_code())
+            .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+
+        let error_message = self.to_string();
+        let error_response = json!({
+            "error": error_message,
+            "status_code": status.as_u16(),
+        });
+
+        (status, Json(error_response)).into_response()
     }
 }
 

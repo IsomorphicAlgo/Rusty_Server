@@ -262,23 +262,23 @@ Yes! You can absolutely develop on your Windows laptop and deploy to your Linux 
 
 ## Phase 3: Data Fetching & Integration
 
-### Step 3.1: NOAA API Integration
+### Step 3.1: NOAA API Integration ✅
 
 **Objective**: Integrate with NOAA Space Weather API.
 
 **Tasks**:
-- [ ] Research NOAA Space Weather API endpoints:
+- [x] Research NOAA Space Weather API endpoints:
   - Current conditions endpoints
   - Historical data endpoints
   - Alert endpoints
   - Documentation review
-- [ ] Implement HTTP client for NOAA API
-- [ ] Add API key management (if required)
-- [ ] Create service layer for fetching data
-- [ ] Implement error handling for API failures
-- [ ] Add retry logic with exponential backoff
-- [ ] Create integration tests (with mock HTTP server)
-- [ ] Add rate limiting for NOAA API calls
+- [x] Implement HTTP client for NOAA API
+- [x] Add API key management (if required)
+- [x] Create service layer for fetching data
+- [x] Implement error handling for API failures
+- [x] Add retry logic with exponential backoff
+- [x] Create integration tests (with mock HTTP server)
+- [ ] Add rate limiting for NOAA API calls (deferred to later phase)
 
 **Deliverables**:
 - Working NOAA API integration
@@ -292,17 +292,17 @@ Yes! You can absolutely develop on your Windows laptop and deploy to your Linux 
 
 ---
 
-### Step 3.2: Data Parsing & Transformation
+### Step 3.2: Data Parsing & Transformation ✅
 
 **Objective**: Parse and transform NOAA API responses into our data models.
 
 **Tasks**:
-- [ ] Implement parsers for NOAA API responses
-- [ ] Handle different data formats (JSON, XML if applicable)
-- [ ] Transform NOAA data to our internal models
-- [ ] Add data validation
-- [ ] Handle missing or malformed data gracefully
-- [ ] Add parsing tests with real API responses (saved samples)
+- [x] Implement parsers for NOAA API responses
+- [x] Handle different data formats (JSON, XML if applicable)
+- [x] Transform NOAA data to our internal models
+- [x] Add data validation
+- [x] Handle missing or malformed data gracefully
+- [x] Add parsing tests with real API responses (saved samples)
 
 **Deliverables**:
 - Parser that converts NOAA responses to our models
@@ -339,8 +339,9 @@ Yes! You can absolutely develop on your Windows laptop and deploy to your Linux 
 
 **Questions to Ask**:
 - How much historical data do you want to store? (affects schema design)
+--Please store 10 years of historical data. Can we expand this further later if desired?
 - Will MySQL run on your laptop for development, or only on the server?
-
+--This wil run in development on my laptop, and then eventually be on the server rack unit. 
 ---
 
 ### Step 4.2: Database Operations

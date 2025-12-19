@@ -1,12 +1,29 @@
 use axum::{
-    extract::Query,
+    extract::{Query, State},
     Json,
 };
 use chrono::Utc;
 use crate::models::*;
+use crate::AppState;
+use crate::Result;
 
 /// Get current space weather conditions
-pub async fn get_current_conditions() -> Json<SpaceWeatherResponse> {
+pub async fn get_current_conditions(
+    State(state): State<AppState>,
+) -> Result<Json<SpaceWeatherResponse>> {
+    // Try to fetch from NOAA API
+    match state.noaa_client.get_current_conditions().await {
+        Ok(response) => Ok(Json(response)),
+        Err(e) => {
+            tracing::warn!("Failed to fetch from NOAA API: {}, using fallback data", e);
+            // Fallback to mock data if NOAA API fails
+            Ok(Json(get_fallback_response()))
+        }
+    }
+}
+
+/// Fallback response when NOAA API is unavailable
+fn get_fallback_response() -> SpaceWeatherResponse {
     // Mock data - will be replaced with real NOAA API data in Phase 3
     let response = SpaceWeatherResponse {
         data: SpaceWeatherData {
@@ -49,11 +66,12 @@ pub async fn get_current_conditions() -> Json<SpaceWeatherResponse> {
         },
     };
 
-    Json(response)
+    response
 }
 
 /// Get historical space weather data
 pub async fn get_historical_data(
+    State(_state): State<AppState>,
     Query(params): Query<HistoricalQuery>,
 ) -> Json<Vec<SpaceWeatherResponse>> {
     // Mock data - will be replaced with database queries in Phase 4
@@ -117,6 +135,7 @@ pub async fn get_historical_data(
 
 /// Get active space weather alerts
 pub async fn get_alerts(
+    State(_state): State<AppState>,
     Query(params): Query<AlertQuery>,
 ) -> Json<Vec<SpaceWeatherResponse>> {
     // Mock data - will be replaced with real alert data in Phase 3
@@ -183,6 +202,7 @@ pub async fn get_alerts(
 
 /// Get radiation levels
 pub async fn get_radiation(
+    State(_state): State<AppState>,
     Query(params): Query<RadiationQuery>,
 ) -> Json<SpaceWeatherResponse> {
     // Mock data - will be replaced with real radiation data in Phase 3

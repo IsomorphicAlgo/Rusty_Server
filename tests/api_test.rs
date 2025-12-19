@@ -3,11 +3,21 @@ use axum::{
     http::{Request, StatusCode},
 };
 use rusty_server::api::create_router;
+use rusty_server::{AppState, services::NoaaClient};
 use tower::util::ServiceExt;
+
+fn create_test_state() -> AppState {
+    let noaa_client = NoaaClient::new(
+        "https://services.swpc.noaa.gov".to_string(),
+        None,
+        30,
+    );
+    AppState::new(noaa_client)
+}
 
 #[tokio::test]
 async fn test_current_conditions() {
-    let app = create_router();
+    let app = create_router(create_test_state());
 
     let response = app
         .oneshot(
@@ -25,12 +35,14 @@ async fn test_current_conditions() {
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
 
     assert!(json["data"].is_object());
-    assert_eq!(json["metadata"]["source"], "mock");
+    // Source can be "noaa" (if API call succeeds) or "mock" (if it falls back)
+    let source = json["metadata"]["source"].as_str().unwrap();
+    assert!(source == "noaa" || source == "mock");
 }
 
 #[tokio::test]
 async fn test_historical_data() {
-    let app = create_router();
+    let app = create_router(create_test_state());
 
     let response = app
         .oneshot(
@@ -53,7 +65,7 @@ async fn test_historical_data() {
 
 #[tokio::test]
 async fn test_alerts() {
-    let app = create_router();
+    let app = create_router(create_test_state());
 
     let response = app
         .oneshot(
@@ -76,7 +88,7 @@ async fn test_alerts() {
 
 #[tokio::test]
 async fn test_radiation() {
-    let app = create_router();
+    let app = create_router(create_test_state());
 
     let response = app
         .oneshot(

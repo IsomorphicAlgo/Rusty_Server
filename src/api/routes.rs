@@ -6,10 +6,11 @@ use axum::{
 use serde_json::{json, Value};
 use std::time::SystemTime;
 
+use crate::AppState;
 use super::handlers;
 
 /// Create the main application router
-pub fn create_router() -> Router {
+pub fn create_router(state: AppState) -> Router {
     Router::new()
         // Health check endpoints
         .route("/health", get(health_check))
@@ -19,6 +20,7 @@ pub fn create_router() -> Router {
         .route("/api/v1/space-weather/historical", get(handlers::get_historical_data))
         .route("/api/v1/space-weather/alerts", get(handlers::get_alerts))
         .route("/api/v1/space-weather/radiation", get(handlers::get_radiation))
+        .with_state(state)
 }
 
 /// Health check endpoint
