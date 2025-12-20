@@ -1,12 +1,34 @@
 use crate::models::*;
 use crate::Result;
 use crate::services::parsing::*;
+use crate::services::DonkiClient;
 use chrono::Utc;
 use reqwest::Client;
 use std::time::Duration;
 use tracing::{info, warn};
 
 /// NOAA Space Weather API client
+/// 
+/// Fetches space weather data from NOAA Space Weather Prediction Center.
+/// Integrates with DONKI client to include solar flare data.
+/// 
+/// # Data Sources
+/// - KP Index (geomagnetic activity)
+/// - Solar Wind (speed, density, temperature, Bz)
+/// - Solar Flares (via DONKI integration)
+/// 
+/// # Example
+/// ```no_run
+/// use rusty_server::services::NoaaClient;
+/// 
+/// let client = NoaaClient::new(
+///     "https://services.swpc.noaa.gov".to_string(),
+///     None,
+///     30,
+/// );
+/// 
+/// let response = client.get_current_conditions(Some(&donki_client)).await?;
+/// ```
 #[derive(Clone)]
 pub struct NoaaClient {
     client: Client,
@@ -32,7 +54,35 @@ impl NoaaClient {
     }
 
     /// Fetch current space weather conditions
-    pub async fn get_current_conditions(&self) -> Result<SpaceWeatherResponse> {
+    /// 
+    /// Fetches current space weather data from NOAA and optionally integrates
+    /// solar flare data from DONKI.
+    /// 
+    /// # Arguments
+    /// * `donki_client` - Optional DONKI client for fetching solar flare data.
+    ///   If provided, will fetch recent flares (last 7 days) and include the most recent one.
+    ///   If None, solar flare data will be None.
+    /// 
+    /// # Returns
+    /// `SpaceWeatherResponse` containing:
+    /// - KP Index (if available)
+    /// - Solar Wind data (if available)
+    /// - Solar Flare (if DONKI client provided and flares exist)
+    /// - Geomagnetic Storm (derived from KP index)
+    /// 
+    /// # Errors
+    /// Returns error if all data sources fail. Individual data source failures
+    /// are logged as warnings but don't fail the entire request.
+    /// 
+    /// # Example
+    /// ```no_run
+    /// let response = noaa_client.get_current_conditions(Some(&donki_client)).await?;
+    /// // Response will include solar flare if DONKI has recent flare data
+    /// ```
+    pub async fn get_current_conditions(
+        &self,
+        donki_client: Option<&DonkiClient>,
+    ) -> Result<SpaceWeatherResponse> {
         info!("Fetching current space weather conditions from NOAA");
 
         // Fetch multiple data sources in parallel
@@ -42,9 +92,29 @@ impl NoaaClient {
             self.fetch_alerts()
         )?;
 
+        // Fetch solar flares from DONKI if client is available
+        let solar_flare = if let Some(donki) = donki_client {
+            // Fetch recent flares (last 7 days) and get the most recent one
+            match donki.fetch_recent_solar_flares(7).await {
+                Ok(mut flares) => {
+                    // Sort by peak_time descending (most recent first) and get the first one
+                    flares.sort_by(|a, b| b.peak_time.cmp(&a.peak_time));
+                    flares.into_iter().next()
+                }
+                Err(e) => {
+                    warn!("Failed to fetch solar flares from DONKI: {}", e);
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
+        let source = if solar_flare.is_some() { "noaa,donki" } else { "noaa" }.to_string();
+        
         let response = SpaceWeatherResponse {
             data: SpaceWeatherData {
-                solar_flare: None, // Will be implemented when we find the endpoint
+                solar_flare,
                 geomagnetic_storm: kp_index.as_ref().map(|kp| GeomagneticStorm {
                     level: kp_to_geomagnetic_level(kp.value),
                     start_time: None, // NOAA doesn't provide this directly
@@ -57,7 +127,7 @@ impl NoaaClient {
             },
             metadata: ResponseMetadata {
                 timestamp: Utc::now(),
-                source: "noaa".to_string(),
+                source,
                 cached: false,
             },
         };

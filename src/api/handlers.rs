@@ -10,12 +10,41 @@ use crate::Result;
 
 /// Get current space weather conditions
 /// 
-/// This endpoint returns the most recent space weather data available.
-/// It follows this priority order:
+/// Returns the most recent space weather data available, including:
+/// - KP Index (geomagnetic activity)
+/// - Solar Wind (speed, density, temperature, Bz)
+/// - Solar Flares (from DONKI, if configured and available)
+/// - Geomagnetic Storms (derived from KP index)
+/// 
+/// **Data Priority Order:**
 /// 1. Check cache (if available and not expired)
-/// 2. Fetch from NOAA API (if available)
+/// 2. Fetch from NOAA API + DONKI (if available)
 /// 3. Fall back to latest database record
 /// 4. Return mock data as final fallback
+/// 
+/// # Response
+/// Returns `SpaceWeatherResponse` with:
+/// - `data`: Space weather observations
+/// - `metadata`: Source, timestamp, cached flag
+/// 
+/// # Errors
+/// Always returns 200 OK with data (uses fallbacks on failure)
+/// 
+/// # Example Response
+/// ```json
+/// {
+///   "data": {
+///     "solar_flare": { "class": "C2.5", ... },
+///     "kp_index": { "value": 3.0, ... },
+///     "solar_wind": { "speed": 450.0, ... }
+///   },
+///   "metadata": {
+///     "source": "noaa,donki",
+///     "timestamp": "2024-12-20T...",
+///     "cached": false
+///   }
+/// }
+/// ```
 pub async fn get_current_conditions(
     State(state): State<AppState>,
 ) -> Result<Json<SpaceWeatherResponse>> {
@@ -32,8 +61,8 @@ pub async fn get_current_conditions(
 
     tracing::info!("Cache miss for current conditions, fetching from NOAA API");
 
-    // Try to fetch from NOAA API
-    match state.noaa_client.get_current_conditions().await {
+    // Try to fetch from NOAA API (with DONKI integration for solar flares)
+    match state.noaa_client.get_current_conditions(Some(&state.donki_client)).await {
         Ok(mut response) => {
             tracing::info!(
                 "Successfully fetched current conditions from NOAA API (timestamp: {})",
