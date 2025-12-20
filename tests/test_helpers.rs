@@ -1,4 +1,6 @@
-use rusty_server::{AppState, services::NoaaClient, database::DatabasePool, SpaceWeatherCache, config::CacheConfig};
+use rusty_server::{AppState, services::NoaaClient, database::DatabasePool, SpaceWeatherCache, config::{CacheConfig, RateLimitConfig, AuthConfig, Config, SecurityConfig}};
+use rusty_server::api::create_rate_limiter;
+use rusty_server::auth::ApiKeyStore;
 use std::env;
 use std::fs;
 use std::path::Path;
@@ -107,6 +109,29 @@ pub async fn create_test_state() -> AppState {
     let cache_config = CacheConfig::default();
     let cache = SpaceWeatherCache::new(&cache_config);
     
-    AppState::new(noaa_client, db_pool, cache)
+    let rate_limit_config = RateLimitConfig::default();
+    let rate_limiter = create_rate_limiter(&rate_limit_config);
+    
+    let api_key_store = ApiKeyStore::new();
+    
+    AppState::new(noaa_client, db_pool, cache, rate_limiter, api_key_store)
+}
+
+/// Create test configuration (authentication disabled by default for tests)
+pub fn create_test_config() -> Config {
+    Config {
+        server: rusty_server::config::ServerConfig::default(),
+        database: rusty_server::config::DatabaseConfig::default(),
+        noaa: rusty_server::config::NoaaConfig::default(),
+        cache: CacheConfig::default(),
+        rate_limit: RateLimitConfig::default(),
+        auth: AuthConfig {
+            jwt_secret: "test-secret".to_string(),
+            token_expiry_hours: 24,
+            require_auth: false, // Disable auth for tests by default
+        },
+        logging: rusty_server::config::LoggingConfig::default(),
+        security: SecurityConfig::default(),
+    }
 }
 

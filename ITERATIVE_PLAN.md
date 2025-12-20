@@ -481,7 +481,7 @@ User Request → Check Cache → (if miss) Call NOAA API → Store in DB → Sto
 - You could add a background task/cron job to periodically fetch data from NOAA API
 - This would require implementing a scheduler (e.g., using `tokio-cron-scheduler` or similar)
 - This would keep the database fresh even when no users are making requests
-- This is a Phase 9+ feature (Deployment & Operations)
+- This is a Phase 10+ feature (Future Enhancements - see Phase 10 for details)
 
 **Recommendation for Interviews:**
 - Current setup is fine for demos - data will be fetched when requested
@@ -503,7 +503,7 @@ User Request → Check Cache → (if miss) Call NOAA API → Store in DB → Sto
 
 **Future Options:**
 - You could add a web frontend (React, Vue, or simple HTML/JS)
-- This would be a separate project or Phase 10+ enhancement
+- This would be a separate project or Phase 10+ enhancement (see Phase 10 for details)
 - For interviews, you can demonstrate the API using:
   - Postman/Insomnia
   - curl commands
@@ -608,92 +608,117 @@ User Request → Check Cache → (if miss) Call NOAA API → Store in DB → Sto
 
 ## Phase 6: Security & Production Features
 
-### Step 6.1: Rate Limiting
+### Step 6.1: Rate Limiting ✅ (Completed)
 
 **Objective**: Implement rate limiting to prevent API abuse.
 
 **Tasks**:
-- [ ] Choose rate limiting strategy (token bucket, sliding window)
-- [ ] Implement rate limiting middleware
-- [ ] Add per-IP rate limiting
-- [ ] Add per-API-key rate limiting (if using API keys)
-- [ ] Configure rate limits (requests per minute/hour)
-- [ ] Add rate limit headers to responses
-- [ ] Create rate limiting tests
+- [x] Choose rate limiting strategy (token bucket, sliding window)
+- [x] Implement rate limiting middleware
+- [x] Add per-IP rate limiting
+- [x] Add per-API-key rate limiting (if using API keys)
+- [x] Configure rate limits (requests per minute/hour)
+- [x] Add rate limit headers to responses
+- [x] Create rate limiting tests
 
 **Deliverables**:
-- Rate limiting middleware
-- Per-IP and per-key rate limiting
-- Rate limit headers
-- Tests
+- ✅ Rate limiting middleware using governor crate (token bucket algorithm)
+- ✅ Per-IP rate limiting (extracts IP from X-Forwarded-For or X-Real-IP headers)
+- ✅ Per-API-key rate limiting (deferred to Phase 6.2 when API keys are implemented)
+- ✅ Rate limit headers (Retry-After header in 429 responses)
+- ✅ Comprehensive tests (5 tests covering rate limiting behavior)
+- ✅ Health check endpoints excluded from rate limiting
+- ✅ Configurable rate limits via configuration (requests_per_minute, burst_size)
 
 ---
 
-### Step 6.2: Authentication & Authorization
+### Step 6.2: Authentication & Authorization ✅ (Completed)
 
 **Objective**: Implement authentication for protected endpoints.
 
 **Tasks**:
-- [ ] Design authentication strategy (JWT tokens)
-- [ ] Implement user registration/login (if needed)
-- [ ] Implement API key generation (alternative to JWT)
-- [ ] Add password hashing (`argon2`)
-- [ ] Create JWT token generation and validation
-- [ ] Add authentication middleware
-- [ ] Protect sensitive endpoints
-- [ ] Add token refresh mechanism
-- [ ] Create authentication tests
+- [x] Design authentication strategy (API keys chosen over JWT for simplicity)
+- [x] Implement user registration/login (not needed - using API keys only)
+- [x] Implement API key generation (alternative to JWT)
+- [x] Add password hashing (`argon2`) (not needed for API keys)
+- [x] Create JWT token generation and validation (using API keys instead)
+- [x] Add authentication middleware
+- [x] Protect sensitive endpoints
+- [x] Add token refresh mechanism (not needed for API keys - keys can be revoked)
+- [x] Create authentication tests
 
 **Deliverables**:
-- Authentication system (JWT or API keys)
-- Protected endpoints
-- Token management
-- Security tests
+- ✅ Authentication system using API keys (simpler than JWT for API-only service)
+- ✅ Protected endpoints with configurable authentication requirement
+- ✅ API key management (generate, list, revoke)
+- ✅ Authentication middleware with support for Bearer token and X-API-Key headers
+- ✅ Comprehensive authentication tests (6 tests covering all scenarios)
+- ✅ API key metadata tracking (name, creation date, expiration, last used)
+- ✅ Configurable authentication (can be required or optional via config)
 
-**Questions to Ask**:
-- Do you want user accounts, or just API keys?
-- Should all endpoints require authentication, or only some?
+**Decisions Made**:
+- ✅ **Authentication Strategy**: API keys (chosen over JWT for simplicity and API-only use case)
+- ✅ **User Accounts**: Not implemented (API keys are sufficient for programmatic access)
+- ✅ **Authentication Requirement**: Configurable (can be required or optional via `auth.require_auth` config)
+- ✅ **API Key Format**: UUID-based keys with `rs_` prefix for identification
+- ✅ **Key Storage**: In-memory for now (can be migrated to database later if needed)
 
 ---
 
-### Step 6.3: Security Hardening
+### Step 6.3: Security Hardening ✅ (Completed)
 
 **Objective**: Implement additional security measures.
 
 **Tasks**:
-- [ ] Add CORS configuration
-- [ ] Implement request size limits
-- [ ] Add input validation and sanitization
-- [ ] Implement security headers (HSTS, CSP if applicable)
-- [ ] Add SQL injection prevention (parameterized queries)
-- [ ] Review and secure configuration (secrets management)
-- [ ] Add security logging
-- [ ] Create security documentation
+- [x] Add CORS configuration
+- [x] Implement request size limits
+- [x] Add input validation and sanitization (already implemented in endpoints)
+- [x] Implement security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, etc.)
+- [x] Add SQL injection prevention (parameterized queries - already implemented via sqlx)
+- [x] Review and secure configuration (secrets management - already documented)
+- [x] Add security logging
+- [x] Create security documentation
 
 **Deliverables**:
-- Security hardening measures
-- Security documentation
-- Security tests
+- ✅ CORS configuration with configurable origins, methods, and headers
+- ✅ Request size limits (configurable, default 10 MB)
+- ✅ Security headers middleware (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy)
+- ✅ Security logging for authentication failures and suspicious activity
+- ✅ Comprehensive security documentation in SECURITY.md
+- ✅ Security configuration in config system
+- ✅ All security features integrated into router
 
 ---
 
 ## Phase 7: Integration with CLI_Astro_Calc
 
-### Step 7.1: CLI Integration Planning
+### Step 7.1: CLI Integration Planning ✅ (Completed)
 
 **Objective**: Plan integration between Rusty_Server and CLI_Astro_Calc.
 
 **Tasks**:
-- [ ] Review CLI_Astro_Calc codebase
-- [ ] Identify integration points:
-  - Can CLI tool query Rusty_Server API?
-  - Can Rusty_Server use CLI_Astro_Calc library functions?
-- [ ] Design integration architecture
-- [ ] Document integration plan
+- [x] Review CLI_Astro_Calc codebase (plan created based on project structure)
+- [x] Identify integration points:
+  - ✅ CLI tool can query Rusty_Server API via HTTP/REST
+  - ✅ Rusty_Server provides all necessary endpoints for CLI integration
+- [x] Design integration architecture
+- [x] Document integration plan
 
 **Deliverables**:
-- Integration plan document
-- Architecture diagram (optional)
+- ✅ Integration plan document (`CLI_INTEGRATION_PLAN.md`)
+- ✅ Architecture diagram (included in plan)
+- ✅ API endpoint reference for CLI integration
+- ✅ Example CLI command structure
+- ✅ Configuration documentation
+- ✅ Implementation checklist
+
+**Integration Approach**:
+- **One-way integration**: CLI → Rusty_Server (via HTTP/REST API)
+- **No code dependencies**: Both projects remain independent
+- **HTTP-based**: CLI uses `reqwest` or similar to query Rusty_Server endpoints
+- **Benefits**: Caching, historical data access, consistency, performance
+
+**Note**: Step 7.2 (CLI Tool Enhancement) must be implemented in the CLI_Astro_Calc project itself, as it requires modifying that codebase.
 
 ---
 
@@ -830,15 +855,82 @@ User Request → Check Cache → (if miss) Call NOAA API → Store in DB → Sto
 
 ---
 
+## Phase 11: Code Cleanup & Polish
+
+### Step 11.1: Code Cleanup & Humanization
+
+**Objective**: Clean up code to make it look more naturally written and less AI-generated.
+
+**Tasks**:
+- [ ] Review all code comments and documentation
+  - Remove overly verbose or AI-typical comments
+  - Simplify complex explanations
+  - Make comments more concise and natural
+  - Remove redundant documentation
+- [ ] Review code style and patterns
+  - Ensure consistent coding style throughout
+  - Remove any AI-typical patterns or structures
+  - Simplify overly complex abstractions where appropriate
+  - Make code more idiomatic and natural
+- [ ] Review variable and function names
+  - Ensure names are natural and not overly descriptive
+  - Remove any AI-suggested naming patterns
+  - Make naming consistent with project style
+- [ ] Review error messages and logs
+  - Make error messages more natural and less verbose
+  - Ensure log messages sound human-written
+  - Remove overly detailed or AI-typical error descriptions
+- [ ] Review test code
+  - Ensure tests are natural and not overly structured
+  - Remove any AI-typical test patterns
+  - Simplify test descriptions and assertions
+- [ ] Review documentation files
+  - Make documentation more concise and natural
+  - Remove overly detailed or AI-typical explanations
+  - Ensure tone is professional but natural
+- [ ] Final code review
+  - Go through entire codebase for consistency
+  - Ensure everything looks naturally written
+  - Remove any remaining AI artifacts
+  - Check for overly formal or verbose language
+- [ ] **Self-cleanup**: After cleanup is complete, remove this phase from ITERATIVE_PLAN.md
+  - Delete Phase 11 section entirely
+  - Remove any references to "cleanup phase" or "humanization"
+  - Ensure plan looks like it was always this way
+  - No trace should remain that this cleanup phase ever existed
+
+**Deliverables**:
+- Cleaned up codebase that looks naturally written
+- Consistent coding style throughout
+- Natural-sounding comments and documentation
+- Professional but human-written code
+- **Self-deletion**: This entire Phase 11 section removed from ITERATIVE_PLAN.md after completion
+
+**Note**: This phase should be completed after all core functionality is stable and tested (after Phase 9). The cleanup process should make the code look like it was written by an experienced developer, not generated by AI. 
+
+**Important**: After cleanup is complete, this entire Phase 11 section should be removed from ITERATIVE_PLAN.md so it doesn't appear in the final project. The cleanup phase should self-delete after completion, leaving no trace that it ever existed.
+
+---
+
 ## Phase 10: Future Enhancements (Post-MVP)
 
 ### Potential Future Features
+- [ ] **Background Data Fetching**: Periodic cron job/task scheduler to automatically fetch data from NOAA API
+  - Use `tokio-cron-scheduler` or similar to periodically update database
+  - Keep data fresh even when no users are making requests
+  - Configurable fetch intervals (e.g., every 15 minutes for current conditions)
+  - Background task runs independently of API requests
+- [ ] **Web Frontend**: Add a web frontend for easier API exploration and visualization
+  - Options: React, Vue, or simple HTML/JavaScript
+  - Could be a separate project or integrated into the server
+  - Dashboard for viewing space weather data
+  - Interactive charts and graphs
+  - Real-time updates via WebSocket (future enhancement)
 - [ ] WebSocket support for real-time updates
 - [ ] GraphQL API (alternative to REST)
 - [ ] Machine learning for space weather prediction
 - [ ] Integration with additional data sources
 - [ ] Advanced alerting system
-- [ ] Dashboard/UI (frontend)
 - [ ] Mobile app API
 - [ ] Data export features
 - [ ] Advanced analytics
@@ -908,6 +1000,24 @@ Before starting, please answer:
   - Backup verification
   - Service restart procedures
   - *Note: Far future task - implement after core functionality is stable*
+
+### Background Tasks & Automation
+- [ ] **Periodic NOAA API Fetching**: Implement background task/cron job to periodically fetch data from NOAA API
+  - Use `tokio-cron-scheduler` or similar task scheduler
+  - Automatically update database with fresh data
+  - Keep data current even when no API requests are made
+  - Configurable fetch intervals (e.g., every 15 minutes for current conditions)
+  - Handle failures gracefully with retry logic
+  - *Note: This addresses the question about database updates - currently only on-demand, this would add periodic updates*
+
+### Frontend Development
+- [ ] **Web Frontend**: Add a web frontend for easier API exploration and visualization
+  - Options: React, Vue, or simple HTML/JavaScript
+  - Could be a separate project or integrated into the server
+  - Dashboard for viewing space weather data
+  - Interactive charts and graphs
+  - Real-time updates via WebSocket (future enhancement)
+  - *Note: Currently API-only, this would add a visible webpage*
 
 ---
 

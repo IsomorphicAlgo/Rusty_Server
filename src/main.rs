@@ -2,9 +2,11 @@ use rusty_server::config::Config;
 use rusty_server::Result;
 use rusty_server::logging;
 use rusty_server::api::create_router;
+use rusty_server::api::create_rate_limiter;
 use rusty_server::start_server;
 use rusty_server::services::NoaaClient;
 use rusty_server::database::DatabasePool;
+use rusty_server::auth::ApiKeyStore;
 use rusty_server::AppState;
 
 #[tokio::main]
@@ -57,11 +59,26 @@ async fn main() -> Result<()> {
         config.cache.alerts_ttl_seconds
     );
 
+    // Initialize rate limiter
+    let rate_limiter = create_rate_limiter(&config.rate_limit);
+    tracing::info!("Rate limiter initialized: {} req/min, burst: {}",
+        config.rate_limit.requests_per_minute,
+        config.rate_limit.burst_size
+    );
+
+    // Initialize API key store
+    let api_key_store = ApiKeyStore::new();
+    if config.auth.require_auth {
+        tracing::info!("Authentication is required - API keys must be provided");
+    } else {
+        tracing::info!("Authentication is optional - API keys not required");
+    }
+
     // Create application state
-    let app_state = AppState::new(noaa_client, db_pool, cache);
+    let app_state = AppState::new(noaa_client, db_pool, cache, rate_limiter, api_key_store);
 
     // Create the API router
-    let router = create_router(app_state);
+    let router = create_router(app_state, config.clone());
 
     // TODO: Add middleware (logging, error handling, etc.)
 

@@ -10,7 +10,7 @@ use test_helpers::create_test_state;
 
 #[tokio::test]
 async fn test_health_check() {
-    let app = create_router(create_test_state().await);
+    let app = create_router(create_test_state().await, create_test_config());
 
     let response = app
         .oneshot(
@@ -34,7 +34,7 @@ async fn test_health_check() {
 
 #[tokio::test]
 async fn test_health_check_api_v1() {
-    let app = create_router(create_test_state().await);
+    let app = create_router(create_test_state().await, create_test_config());
 
     let response = app
         .oneshot(

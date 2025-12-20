@@ -11,6 +11,7 @@ pub struct Config {
     pub rate_limit: RateLimitConfig,
     pub auth: AuthConfig,
     pub logging: LoggingConfig,
+    pub security: SecurityConfig,
 }
 
 /// Server configuration
@@ -135,6 +136,54 @@ impl Default for LoggingConfig {
     }
 }
 
+/// Security configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SecurityConfig {
+    /// CORS allowed origins (comma-separated, or "*" for all)
+    pub cors_allowed_origins: String,
+    /// CORS allowed methods (comma-separated)
+    pub cors_allowed_methods: String,
+    /// CORS allowed headers (comma-separated)
+    pub cors_allowed_headers: String,
+    /// Maximum request body size in bytes
+    pub max_request_size_bytes: u64,
+    /// Enable HSTS (HTTP Strict Transport Security)
+    pub enable_hsts: bool,
+    /// HSTS max-age in seconds
+    pub hsts_max_age_seconds: u64,
+    /// Enable X-Content-Type-Options header
+    pub enable_x_content_type_options: bool,
+    /// Enable X-Frame-Options header
+    pub enable_x_frame_options: bool,
+    /// X-Frame-Options value (DENY, SAMEORIGIN, or ALLOW-FROM)
+    pub x_frame_options_value: String,
+    /// Enable X-XSS-Protection header
+    pub enable_x_xss_protection: bool,
+    /// Enable Referrer-Policy header
+    pub enable_referrer_policy: bool,
+    /// Referrer-Policy value
+    pub referrer_policy_value: String,
+}
+
+impl Default for SecurityConfig {
+    fn default() -> Self {
+        Self {
+            cors_allowed_origins: "*".to_string(),
+            cors_allowed_methods: "GET,POST,PUT,DELETE,OPTIONS".to_string(),
+            cors_allowed_headers: "Content-Type,Authorization,X-API-Key".to_string(),
+            max_request_size_bytes: 10 * 1024 * 1024, // 10 MB
+            enable_hsts: false, // Only enable in production with HTTPS
+            hsts_max_age_seconds: 31536000, // 1 year
+            enable_x_content_type_options: true,
+            enable_x_frame_options: true,
+            x_frame_options_value: "DENY".to_string(),
+            enable_x_xss_protection: true,
+            enable_referrer_policy: true,
+            referrer_policy_value: "strict-origin-when-cross-origin".to_string(),
+        }
+    }
+}
+
 impl Config {
     /// Load configuration from environment variables and config file
     pub fn load() -> Result<Self, config::ConfigError> {
@@ -161,7 +210,19 @@ impl Config {
             .set_default("auth.token_expiry_hours", 24)?
             .set_default("auth.require_auth", false)?
             .set_default("logging.level", "info")?
-            .set_default("logging.format", "pretty")?;
+            .set_default("logging.format", "pretty")?
+            .set_default("security.cors_allowed_origins", "*")?
+            .set_default("security.cors_allowed_methods", "GET,POST,PUT,DELETE,OPTIONS")?
+            .set_default("security.cors_allowed_headers", "Content-Type,Authorization,X-API-Key")?
+            .set_default("security.max_request_size_bytes", 10 * 1024 * 1024)?
+            .set_default("security.enable_hsts", false)?
+            .set_default("security.hsts_max_age_seconds", 31536000)?
+            .set_default("security.enable_x_content_type_options", true)?
+            .set_default("security.enable_x_frame_options", true)?
+            .set_default("security.x_frame_options_value", "DENY")?
+            .set_default("security.enable_x_xss_protection", true)?
+            .set_default("security.enable_referrer_policy", true)?
+            .set_default("security.referrer_policy_value", "strict-origin-when-cross-origin")?;
 
         // Load from config file if it exists
         if let Ok(config_file) = env::var("CONFIG_FILE") {
@@ -232,6 +293,7 @@ mod tests {
             rate_limit: RateLimitConfig::default(),
             auth: AuthConfig::default(),
             logging: LoggingConfig::default(),
+            security: SecurityConfig::default(),
         };
 
         assert_eq!(config.server.port, 3000);
@@ -252,6 +314,7 @@ mod tests {
             rate_limit: RateLimitConfig::default(),
             auth: AuthConfig::default(),
             logging: LoggingConfig::default(),
+            security: SecurityConfig::default(),
         };
 
         assert!(config.validate().is_err());

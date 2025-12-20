@@ -4,7 +4,7 @@ A Rust-based REST API service for fetching, caching, and serving space weather d
 
 ## Project Status
 
-**Current Phase**: Phase 5 - API Implementation  
+**Current Phase**: Phase 6 - Security & Production Features  
 **Completed Steps**: 
 - ✅ 1.1 (Project Structure & Dependencies)
 - ✅ 1.2 (Configuration System)
@@ -20,8 +20,12 @@ A Rust-based REST API service for fetching, caching, and serving space weather d
 - ✅ 5.1 (Current Conditions Endpoint)
 - ✅ 5.2 (Historical Data Endpoint)
 - ✅ 5.3 (Alerts & Radiation Endpoints)
+- ✅ 6.1 (Rate Limiting)
+- ✅ 6.2 (Authentication & Authorization)
+- ✅ 6.3 (Security Hardening)
+- ✅ 7.1 (CLI Integration Planning)
 
-**Next Step**: 6.1 (Rate Limiting)
+**Next Step**: 7.2 (CLI Tool Enhancement - to be implemented in CLI_Astro_Calc project) or Phase 8 (Testing & Quality Assurance)
 
 ### What's Been Completed
 
@@ -49,10 +53,15 @@ A Rust-based REST API service for fetching, caching, and serving space weather d
 - ✅ **Caching Layer**: High-performance in-memory caching with moka (TTL-based expiration, metrics tracking)
 - ✅ **Cache Integration**: All API handlers use cache to reduce API calls and improve response times
 - ✅ **Current Conditions Endpoint**: Fully implemented with cache → API → database → mock fallback chain
+- ✅ **Historical Data Endpoint**: Fully implemented with query parameters, pagination, date validation, and caching
+- ✅ **Alerts Endpoint**: Fully implemented with filtering (severity, type, active_only) and caching
+- ✅ **Radiation Endpoint**: Fully implemented with threshold and alert level filtering
 - ✅ **Enhanced Logging**: Comprehensive logging for all endpoint operations with proper log levels
+- ✅ **Rate Limiting**: Per-IP rate limiting using token bucket algorithm (governor crate)
 
 **📋 See [ITERATIVE_PLAN.md](ITERATIVE_PLAN.md) for the complete development plan.**  
-**📚 See [OVERVIEW.md](OVERVIEW.md) for architecture and technical details.**
+**📚 See [OVERVIEW.md](OVERVIEW.md) for architecture and technical details.**  
+**🔗 See [CLI_INTEGRATION_PLAN.md](CLI_INTEGRATION_PLAN.md) for CLI_Astro_Calc integration details.**
 
 ---
 
@@ -97,6 +106,11 @@ Rusty_Server will host a REST API service for fetching, caching, and serving spa
 - ✅ Database integration with MySQL
 - ✅ NOAA API integration with retry logic
 - ✅ Caching layer with TTL management and metrics
+- ✅ Rate limiting with per-IP token bucket algorithm
+- ✅ API key authentication with configurable requirement
+- ✅ API key management endpoints
+- ✅ Security hardening (CORS, security headers, request size limits)
+- ✅ Security logging for authentication failures
 
 ## Technology Stack
 
@@ -235,10 +249,13 @@ cargo test --lib
 cargo test --test
 ```
 
-**Test Results**: 50 tests passing
-- 27 unit tests (models, config, errors, logging, cache)
+**Test Results**: 62+ tests passing
+- 34 unit tests (models, config, errors, logging, cache, auth)
+  - 7 authentication unit tests (API key generation, validation, middleware)
 - 20 API integration tests (current conditions, historical data, alerts, radiation)
+- 5 rate limiting tests
 - 2 health check tests
+- 6 authentication integration tests (require database connection)
 
 ### Testing the API
 
@@ -266,9 +283,14 @@ Invoke-WebRequest -Uri http://localhost:3000/health -UseBasicParsing
 - ✅ Parameterized database queries (SQL injection prevention)
 - ✅ Input validation on all endpoints
 - ✅ Proper error handling (don't leak sensitive info)
-- ⏳ Rate limiting (planned)
-- ⏳ Authentication/authorization (planned)
-- ⏳ Security headers (planned)
+- ✅ Rate limiting (per-IP token bucket algorithm)
+- ✅ Authentication/authorization (API key-based authentication)
+- ✅ API key management (generate, list, revoke)
+- ✅ Configurable authentication requirement
+- ✅ Security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, etc.)
+- ✅ CORS configuration
+- ✅ Request size limits
+- ✅ Security logging
 
 **📋 See [SECURITY.md](SECURITY.md) for detailed security guidelines and credential management.**
 

@@ -101,3 +101,121 @@ git filter-branch --force --index-filter \
   --prune-empty --tag-name-filter cat -- --all
 ```
 
+## Security Hardening Features
+
+The server implements multiple security hardening measures:
+
+### CORS (Cross-Origin Resource Sharing)
+
+CORS is configured to control which origins can access the API:
+
+```toml
+[security]
+cors_allowed_origins = "*"  # Or specific origins: "https://example.com,https://app.example.com"
+cors_allowed_methods = "GET,POST,PUT,DELETE,OPTIONS"
+cors_allowed_headers = "Content-Type,Authorization,X-API-Key"
+```
+
+**Best Practices:**
+- In production, specify exact origins instead of `"*"`
+- Only allow necessary HTTP methods
+- Only allow necessary headers
+
+### Request Size Limits
+
+Protects against DoS attacks by limiting request body size:
+
+```toml
+[security]
+max_request_size_bytes = 10485760  # 10 MB default
+```
+
+**Recommendation:** Adjust based on your API's needs. For most APIs, 1-10 MB is sufficient.
+
+### Security Headers
+
+The server automatically adds security headers to all responses:
+
+- **X-Content-Type-Options**: Prevents MIME type sniffing
+- **X-Frame-Options**: Prevents clickjacking attacks (default: DENY)
+- **X-XSS-Protection**: Enables browser XSS filtering
+- **Referrer-Policy**: Controls referrer information
+- **Content-Security-Policy**: Restricts resource loading
+- **Permissions-Policy**: Controls browser features
+- **Strict-Transport-Security (HSTS)**: Forces HTTPS (only enable with HTTPS)
+
+**Configuration:**
+```toml
+[security]
+enable_hsts = false  # Only enable with HTTPS in production
+hsts_max_age_seconds = 31536000  # 1 year
+enable_x_content_type_options = true
+enable_x_frame_options = true
+x_frame_options_value = "DENY"  # Options: DENY, SAMEORIGIN
+enable_x_xss_protection = true
+enable_referrer_policy = true
+referrer_policy_value = "strict-origin-when-cross-origin"
+```
+
+### Security Logging
+
+Security events are automatically logged:
+
+- **Authentication failures**: Invalid API keys, missing credentials
+- **Rate limit violations**: Too many requests
+- **Suspicious activity**: Unusual patterns (future enhancement)
+
+Logs include:
+- Event type
+- Details (masked for sensitive data)
+- Severity level (critical, warning, info)
+
+**Example log entry:**
+```
+WARN Security event: authentication_failure details="Invalid API key: rs_12345****"
+```
+
+### SQL Injection Prevention
+
+All database queries use parameterized queries (via `sqlx`), preventing SQL injection attacks.
+
+### Input Validation
+
+All API endpoints validate and sanitize input:
+- Date range validation
+- Type checking
+- Size limits
+- Format validation
+
+### Rate Limiting
+
+Per-IP rate limiting prevents abuse:
+- Configurable requests per minute/hour
+- Token bucket algorithm
+- Automatic retry-after headers
+
+### Authentication
+
+API key-based authentication:
+- UUID-based keys with expiration support
+- Configurable requirement (optional or required)
+- Key revocation support
+- Last-used tracking
+
+## Production Security Checklist
+
+Before deploying to production:
+
+- [ ] Change JWT secret from default
+- [ ] Set `require_auth = true`
+- [ ] Configure CORS with specific origins (not `"*"`)
+- [ ] Enable HSTS if using HTTPS
+- [ ] Review and adjust request size limits
+- [ ] Use environment variables for all secrets
+- [ ] Set up proper firewall rules
+- [ ] Enable HTTPS/TLS (via reverse proxy)
+- [ ] Review security headers configuration
+- [ ] Set up monitoring for security events
+- [ ] Regular security audits
+- [ ] Keep dependencies updated
+

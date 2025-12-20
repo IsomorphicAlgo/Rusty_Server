@@ -52,3 +52,22 @@ require_auth = false  # Set to true to require authentication for all endpoints
 level = "info"  # trace, debug, info, warn, error
 format = "pretty"  # "pretty" or "json"
 
+[security]
+# CORS configuration
+cors_allowed_origins = "*"  # Comma-separated list of allowed origins, or "*" for all
+cors_allowed_methods = "GET,POST,PUT,DELETE,OPTIONS"  # Comma-separated HTTP methods
+cors_allowed_headers = "Content-Type,Authorization,X-API-Key"  # Comma-separated headers
+
+# Request size limits
+max_request_size_bytes = 10485760  # 10 MB (in bytes)
+
+# Security headers
+enable_hsts = false  # Only enable in production with HTTPS
+hsts_max_age_seconds = 31536000  # 1 year
+enable_x_content_type_options = true
+enable_x_frame_options = true
+x_frame_options_value = "DENY"  # Options: DENY, SAMEORIGIN, ALLOW-FROM
+enable_x_xss_protection = true
+enable_referrer_policy = true
+referrer_policy_value = "strict-origin-when-cross-origin"
+

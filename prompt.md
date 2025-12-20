@@ -35,3 +35,11 @@ Planned Features
 ### Backend
 
 ### Infra
+
+
+### Quick Prompt Reminders
+⚠️ **Don't write anything in the below list to anything able to commit to github. :**
+     - Server IP addresses
+     - Domain names (if using custom domain)
+     - API keys
+     - Database credentials

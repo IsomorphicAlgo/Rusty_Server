@@ -6,11 +6,11 @@ use rusty_server::api::create_router;
 use tower::util::ServiceExt;
 
 mod test_helpers;
-use test_helpers::create_test_state;
+use test_helpers::{create_test_state, create_test_config};
 
 #[tokio::test]
 async fn test_current_conditions() {
-    let app = create_router(create_test_state().await);
+    let app = create_router(create_test_state().await, create_test_config());
 
     let response = app
         .oneshot(
@@ -56,7 +56,7 @@ async fn test_current_conditions() {
 async fn test_current_conditions_multiple_requests() {
     // Make multiple requests to verify endpoint consistency
     for i in 0..3 {
-        let app = create_router(create_test_state().await);
+        let app = create_router(create_test_state().await, create_test_config());
         
         let response = app
             .oneshot(
@@ -85,7 +85,7 @@ async fn test_current_conditions_multiple_requests() {
 
 #[tokio::test]
 async fn test_current_conditions_response_structure() {
-    let app = create_router(create_test_state().await);
+    let app = create_router(create_test_state().await, create_test_config());
 
     let response = app
         .oneshot(
@@ -130,7 +130,7 @@ async fn test_current_conditions_response_structure() {
 
 #[tokio::test]
 async fn test_historical_data() {
-    let app = create_router(create_test_state().await);
+    let app = create_router(create_test_state().await, create_test_config());
 
     let response = app
         .oneshot(
@@ -162,7 +162,7 @@ async fn test_historical_data() {
 
 #[tokio::test]
 async fn test_historical_data_with_date_range() {
-    let app = create_router(create_test_state().await);
+    let app = create_router(create_test_state().await, create_test_config());
 
     // Test with explicit date range
     let response = app
@@ -192,7 +192,7 @@ async fn test_historical_data_with_date_range() {
 
 #[tokio::test]
 async fn test_historical_data_with_data_type() {
-    let app = create_router(create_test_state().await);
+    let app = create_router(create_test_state().await, create_test_config());
 
     // Test filtering by data type
     let response = app
@@ -222,7 +222,7 @@ async fn test_historical_data_with_data_type() {
 
 #[tokio::test]
 async fn test_historical_data_invalid_date_format() {
-    let app = create_router(create_test_state().await);
+    let app = create_router(create_test_state().await, create_test_config());
 
     // Test with invalid date format
     let response = app
@@ -241,7 +241,7 @@ async fn test_historical_data_invalid_date_format() {
 
 #[tokio::test]
 async fn test_historical_data_invalid_date_range() {
-    let app = create_router(create_test_state().await);
+    let app = create_router(create_test_state().await, create_test_config());
 
     // Test with start_date after end_date
     let response = app
@@ -260,7 +260,7 @@ async fn test_historical_data_invalid_date_range() {
 
 #[tokio::test]
 async fn test_historical_data_too_large_range() {
-    let app = create_router(create_test_state().await);
+    let app = create_router(create_test_state().await, create_test_config());
 
     // Test with date range exceeding 1 year
     let response = app
@@ -279,7 +279,7 @@ async fn test_historical_data_too_large_range() {
 
 #[tokio::test]
 async fn test_historical_data_with_offset() {
-    let app = create_router(create_test_state().await);
+    let app = create_router(create_test_state().await, create_test_config());
 
     // Test with offset parameter (client-side pagination)
     let response = app
@@ -303,7 +303,7 @@ async fn test_historical_data_with_offset() {
 
 #[tokio::test]
 async fn test_historical_data_empty_result() {
-    let app = create_router(create_test_state().await);
+    let app = create_router(create_test_state().await, create_test_config());
 
     // Test with date range that likely has no data
     let response = app
@@ -327,7 +327,7 @@ async fn test_historical_data_empty_result() {
 
 #[tokio::test]
 async fn test_alerts() {
-    let app = create_router(create_test_state().await);
+    let app = create_router(create_test_state().await, create_test_config());
 
     let response = app
         .oneshot(
@@ -358,7 +358,7 @@ async fn test_alerts() {
 
 #[tokio::test]
 async fn test_alerts_with_severity_filter() {
-    let app = create_router(create_test_state().await);
+    let app = create_router(create_test_state().await, create_test_config());
 
     let response = app
         .oneshot(
@@ -380,7 +380,7 @@ async fn test_alerts_with_severity_filter() {
 
 #[tokio::test]
 async fn test_alerts_with_type_filter() {
-    let app = create_router(create_test_state().await);
+    let app = create_router(create_test_state().await, create_test_config());
 
     let response = app
         .oneshot(
@@ -408,7 +408,7 @@ async fn test_alerts_with_type_filter() {
 
 #[tokio::test]
 async fn test_alerts_with_active_only() {
-    let app = create_router(create_test_state().await);
+    let app = create_router(create_test_state().await, create_test_config());
 
     let response = app
         .oneshot(
@@ -430,7 +430,7 @@ async fn test_alerts_with_active_only() {
 
 #[tokio::test]
 async fn test_radiation() {
-    let app = create_router(create_test_state().await);
+    let app = create_router(create_test_state().await, create_test_config());
 
     let response = app
         .oneshot(
@@ -464,7 +464,7 @@ async fn test_radiation() {
 
 #[tokio::test]
 async fn test_radiation_with_threshold() {
-    let app = create_router(create_test_state().await);
+    let app = create_router(create_test_state().await, create_test_config());
 
     let response = app
         .oneshot(
@@ -493,7 +493,7 @@ async fn test_radiation_with_threshold() {
 
 #[tokio::test]
 async fn test_radiation_with_alert_level() {
-    let app = create_router(create_test_state().await);
+    let app = create_router(create_test_state().await, create_test_config());
 
     let response = app
         .oneshot(
