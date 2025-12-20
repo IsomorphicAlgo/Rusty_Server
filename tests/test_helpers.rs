@@ -1,4 +1,4 @@
-use rusty_server::{AppState, services::NoaaClient, database::DatabasePool, SpaceWeatherCache, config::{CacheConfig, RateLimitConfig, AuthConfig, Config, SecurityConfig}};
+use rusty_server::{AppState, services::{NoaaClient, DonkiClient}, database::DatabasePool, SpaceWeatherCache, config::{CacheConfig, RateLimitConfig, AuthConfig, Config, SecurityConfig, DonkiConfig}};
 use rusty_server::api::create_rate_limiter;
 use rusty_server::auth::ApiKeyStore;
 use std::env;
@@ -101,6 +101,14 @@ pub async fn create_test_state() -> AppState {
         30,
     );
     
+    // Create DONKI client for tests (with optional API key from env)
+    let donki_api_key = std::env::var("DONKI_API_KEY").ok();
+    let donki_client = DonkiClient::new(
+        "https://api.nasa.gov/DONKI".to_string(),
+        donki_api_key,
+        30,
+    );
+    
     let connection_string = get_test_db_connection_string();
     let db_pool = DatabasePool::new(&connection_string)
         .await
@@ -114,7 +122,7 @@ pub async fn create_test_state() -> AppState {
     
     let api_key_store = ApiKeyStore::new();
     
-    AppState::new(noaa_client, db_pool, cache, rate_limiter, api_key_store)
+    AppState::new(noaa_client, donki_client, db_pool, cache, rate_limiter, api_key_store)
 }
 
 /// Create test configuration (authentication disabled by default for tests)
@@ -123,6 +131,7 @@ pub fn create_test_config() -> Config {
         server: rusty_server::config::ServerConfig::default(),
         database: rusty_server::config::DatabaseConfig::default(),
         noaa: rusty_server::config::NoaaConfig::default(),
+        donki: DonkiConfig::default(),
         cache: CacheConfig::default(),
         rate_limit: RateLimitConfig::default(),
         auth: AuthConfig {

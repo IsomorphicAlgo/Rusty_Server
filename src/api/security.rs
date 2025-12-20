@@ -9,7 +9,6 @@ use axum::{
 use tower_http::{
     cors::{Any, CorsLayer},
     limit::RequestBodyLimitLayer,
-    set_header::SetResponseHeaderLayer,
 };
 use tracing::{debug, warn};
 use crate::config::SecurityConfig;
@@ -19,7 +18,8 @@ pub fn create_cors_layer(config: &SecurityConfig) -> CorsLayer {
     let mut cors = CorsLayer::new();
 
     // Parse allowed origins
-    if config.cors_allowed_origins == "*" {
+    let use_wildcard = config.cors_allowed_origins == "*";
+    if use_wildcard {
         cors = cors.allow_origin(Any);
     } else {
         // Parse comma-separated origins
@@ -68,8 +68,13 @@ pub fn create_cors_layer(config: &SecurityConfig) -> CorsLayer {
         }
     }
 
-    cors.allow_credentials(true)
-        .expose_headers(Any)
+    // Only allow credentials when NOT using wildcard origin
+    // CORS spec: Cannot combine Access-Control-Allow-Credentials: true with Access-Control-Allow-Origin: *
+    if !use_wildcard {
+        cors = cors.allow_credentials(true);
+    }
+    
+    cors.expose_headers(Any)
         .max_age(std::time::Duration::from_secs(3600))
 }
 

@@ -29,6 +29,13 @@ base_url = "https://services.swpc.noaa.gov"
 api_key = ""  # Optional: Set via RUSTY_SERVER__NOAA__API_KEY environment variable
 timeout_seconds = 30
 
+[donki]
+base_url = "https://api.nasa.gov/DONKI"
+# SECURITY: Get free API key from https://api.nasa.gov
+# Use environment variable RUSTY_SERVER__DONKI__API_KEY for production
+api_key = ""  # Required for DONKI: Set via RUSTY_SERVER__DONKI__API_KEY environment variable
+timeout_seconds = 30
+
 [cache]
 current_conditions_ttl_seconds = 900   # 15 minutes
 historical_data_ttl_seconds = 3600     # 1 hour

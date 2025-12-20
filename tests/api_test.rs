@@ -38,9 +38,9 @@ async fn test_current_conditions() {
     assert!(metadata["source"].is_string());
     assert!(metadata["cached"].is_boolean());
     
-    // Source can be "noaa" (if API call succeeds), "mock" (if it falls back), or "test" (from database)
+    // Source can be "noaa" (if API call succeeds), "noaa,donki" (if DONKI is integrated), "mock" (if it falls back), or "test" (from database)
     let source = metadata["source"].as_str().unwrap();
-    assert!(source == "noaa" || source == "mock" || source == "test");
+    assert!(source == "noaa" || source == "noaa,donki" || source == "mock" || source == "test");
     
     // Validate data structure
     let data = &json["data"];

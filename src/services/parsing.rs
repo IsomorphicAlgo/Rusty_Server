@@ -226,6 +226,82 @@ pub fn validate_space_weather_data(data: &SpaceWeatherData) -> Result<()> {
     Ok(())
 }
 
+/// Parse DONKI solar flare data from JSON response
+pub fn parse_donki_flare(json: &Value) -> Result<Option<SolarFlare>> {
+    // DONKI FLR response format:
+    // {
+    //   "flrID": "2025-12-15T00:00:00-FLR-001",
+    //   "beginTime": "2025-12-15T00:00Z",
+    //   "peakTime": "2025-12-15T00:10Z",
+    //   "endTime": "2025-12-15T00:20Z",
+    //   "classType": "C1.0",
+    //   "sourceLocation": "N10W10",
+    //   "activeRegionNum": "12345"
+    // }
+
+    let class_type = json.get("classType").and_then(|v| v.as_str());
+    let peak_time_str = json.get("peakTime").and_then(|v| v.as_str());
+    let begin_time_str = json.get("beginTime").and_then(|v| v.as_str());
+    let end_time_str = json.get("endTime").and_then(|v| v.as_str());
+    let source_location = json.get("sourceLocation").and_then(|v| v.as_str());
+    let active_region = json.get("activeRegionNum").and_then(|v| v.as_str());
+
+    // classType and peakTime are required
+    let class = match class_type {
+        Some(c) => c.to_string(),
+        None => {
+            warn!("DONKI flare missing classType field");
+            return Ok(None);
+        }
+    };
+
+    let peak_time = if let Some(time_str) = peak_time_str {
+        parse_donki_timestamp(time_str).unwrap_or_else(|| Utc::now())
+    } else {
+        warn!("DONKI flare missing peakTime field");
+        return Ok(None);
+    };
+
+    let begin_time = begin_time_str.and_then(|s| parse_donki_timestamp(s));
+    let end_time = end_time_str.and_then(|s| parse_donki_timestamp(s));
+
+    // Combine sourceLocation and activeRegionNum if both exist
+    let source_location_str = match (source_location, active_region) {
+        (Some(loc), Some(region)) => Some(format!("{} AR {}", loc, region)),
+        (Some(loc), None) => Some(loc.to_string()),
+        (None, Some(region)) => Some(format!("AR {}", region)),
+        (None, None) => None,
+    };
+
+    Ok(Some(SolarFlare {
+        class,
+        peak_time,
+        begin_time,
+        end_time,
+        source_location: source_location_str,
+    }))
+}
+
+/// Parse DONKI timestamp format (ISO 8601 with Z)
+fn parse_donki_timestamp(time_str: &str) -> Option<DateTime<Utc>> {
+    if time_str.is_empty() {
+        return None;
+    }
+
+    // Try ISO 8601 format with Z
+    if let Ok(dt) = DateTime::parse_from_rfc3339(time_str) {
+        return Some(dt.with_timezone(&Utc));
+    }
+
+    // Try format without Z (assume UTC)
+    if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(time_str, "%Y-%m-%dT%H:%M:%S") {
+        return Some(DateTime::from_naive_utc_and_offset(dt, Utc));
+    }
+
+    warn!("Failed to parse DONKI timestamp: {}", time_str);
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -366,6 +442,25 @@ mod tests {
         };
         
         assert!(validate_space_weather_data(&invalid_data).is_err());
+    }
+
+    #[test]
+    fn test_parse_donki_flare_valid() {
+        let json = json!({
+            "flrID": "2024-12-19T12:00:00-FLR-001",
+            "beginTime": "2024-12-19T12:00:00Z",
+            "peakTime": "2024-12-19T12:05:00Z",
+            "endTime": "2024-12-19T12:10:00Z",
+            "classType": "C2.5",
+            "sourceLocation": "N10W10",
+            "activeRegionNum": "12345"
+        });
+        
+        let result = parse_donki_flare(&json).unwrap();
+        assert!(result.is_some());
+        let flare = result.unwrap();
+        assert_eq!(flare.class, "C2.5");
+        assert_eq!(flare.source_location, Some("N10W10 AR 12345".to_string()));
     }
 }
 

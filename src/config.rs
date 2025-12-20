@@ -7,6 +7,7 @@ pub struct Config {
     pub server: ServerConfig,
     pub database: DatabaseConfig,
     pub noaa: NoaaConfig,
+    pub donki: DonkiConfig,
     pub cache: CacheConfig,
     pub rate_limit: RateLimitConfig,
     pub auth: AuthConfig,
@@ -58,6 +59,24 @@ impl Default for NoaaConfig {
     fn default() -> Self {
         Self {
             base_url: "https://services.swpc.noaa.gov".to_string(),
+            api_key: None,
+            timeout_seconds: 30,
+        }
+    }
+}
+
+/// DONKI API configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DonkiConfig {
+    pub base_url: String,
+    pub api_key: Option<String>,
+    pub timeout_seconds: u64,
+}
+
+impl Default for DonkiConfig {
+    fn default() -> Self {
+        Self {
+            base_url: "https://api.nasa.gov/DONKI".to_string(),
             api_key: None,
             timeout_seconds: 30,
         }
@@ -199,6 +218,9 @@ impl Config {
             .set_default("noaa.base_url", "https://services.swpc.noaa.gov")?
             .set_default("noaa.timeout_seconds", 30)?
             .set_default("noaa.api_key", "")?
+            .set_default("donki.base_url", "https://api.nasa.gov/DONKI")?
+            .set_default("donki.timeout_seconds", 30)?
+            .set_default("donki.api_key", "")?
             .set_default("cache.current_conditions_ttl_seconds", 900)?
             .set_default("cache.historical_data_ttl_seconds", 3600)?
             .set_default("cache.alerts_ttl_seconds", 300)?
@@ -289,6 +311,7 @@ mod tests {
             server: ServerConfig::default(),
             database: DatabaseConfig::default(),
             noaa: NoaaConfig::default(),
+            donki: DonkiConfig::default(),
             cache: CacheConfig::default(),
             rate_limit: RateLimitConfig::default(),
             auth: AuthConfig::default(),
@@ -310,6 +333,7 @@ mod tests {
             },
             database: DatabaseConfig::default(),
             noaa: NoaaConfig::default(),
+            donki: DonkiConfig::default(),
             cache: CacheConfig::default(),
             rate_limit: RateLimitConfig::default(),
             auth: AuthConfig::default(),

@@ -4,7 +4,7 @@ A Rust-based REST API service for fetching, caching, and serving space weather d
 
 ## Project Status
 
-**Current Phase**: Phase 6 - Security & Production Features  
+**Current Phase**: Phase 8 - Testing & Quality Assurance  
 **Completed Steps**: 
 - ✅ 1.1 (Project Structure & Dependencies)
 - ✅ 1.2 (Configuration System)
@@ -24,8 +24,9 @@ A Rust-based REST API service for fetching, caching, and serving space weather d
 - ✅ 6.2 (Authentication & Authorization)
 - ✅ 6.3 (Security Hardening)
 - ✅ 7.1 (CLI Integration Planning)
+- ✅ 10.1 (NASA DONKI Integration - Solar Flares)
 
-**Next Step**: 7.2 (CLI Tool Enhancement - to be implemented in CLI_Astro_Calc project) or Phase 8 (Testing & Quality Assurance)
+**Next Step**: Phase 8 (Testing & Quality Assurance) - In Progress
 
 ### What's Been Completed
 
@@ -58,9 +59,11 @@ A Rust-based REST API service for fetching, caching, and serving space weather d
 - ✅ **Radiation Endpoint**: Fully implemented with threshold and alert level filtering
 - ✅ **Enhanced Logging**: Comprehensive logging for all endpoint operations with proper log levels
 - ✅ **Rate Limiting**: Per-IP rate limiting using token bucket algorithm (governor crate)
+- ✅ **DONKI Integration**: NASA DONKI API client for solar flare data (FLR endpoint)
+- ✅ **Solar Flare Data**: Real solar flare data from DONKI integrated into current conditions endpoint
 
-**📋 See [ITERATIVE_PLAN.md](ITERATIVE_PLAN.md) for the complete development plan.**  
-**📚 See [OVERVIEW.md](OVERVIEW.md) for architecture and technical details.**  
+**📋 See [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) for the complete development plan.**  
+**📚 See [OVERVIEW.md](OVERVIEW.md) for architecture and technical details.**
 **🔗 See [CLI_INTEGRATION_PLAN.md](CLI_INTEGRATION_PLAN.md) for CLI_Astro_Calc integration details.**
 
 ---
@@ -83,7 +86,7 @@ Rusty_Server will host a REST API service for fetching, caching, and serving spa
 ### Planned Features
 
 - **Rust-Based REST API**: Modern async web service using axum
-- **Data Fetching**: Integration with NOAA Space Weather API and similar sources
+- **Data Fetching**: Integration with NOAA Space Weather API and NASA DONKI API
 - **Local Caching**: Reduce API calls and improve response times
 - **REST Endpoints**: Clean API for querying current conditions and historical data
 - **Data Storage**: Historical data storage in MySQL
@@ -111,6 +114,8 @@ Rusty_Server will host a REST API service for fetching, caching, and serving spa
 - ✅ API key management endpoints
 - ✅ Security hardening (CORS, security headers, request size limits)
 - ✅ Security logging for authentication failures
+- ✅ NASA DONKI API integration for solar flare data
+- ✅ Solar flare data automatically included in current conditions endpoint
 
 ## Technology Stack
 
@@ -189,6 +194,7 @@ RUSTY_SERVER__NOAA__BASE_URL=https://services.swpc.noaa.gov
 - **Server**: Host, port
 - **Database**: Connection string, max connections
 - **NOAA API**: Base URL, API key (optional), timeout
+- **DONKI API**: Base URL, API key (required), timeout
 - **Cache**: TTL values, size limits
 - **Rate Limiting**: Requests per minute/hour, burst size
 - **Authentication**: JWT secret, token expiry, require auth
@@ -215,7 +221,7 @@ Rusty_Server/
 ├── Cargo.toml           # Rust project manifest
 ├── README.md            # This file
 ├── OVERVIEW.md          # Architecture and technical overview
-└── ITERATIVE_PLAN.md    # Development plan
+└── DEVELOPMENT_PLAN.md  # Development plan
 ```
 
 ## Development Workflow
@@ -249,13 +255,15 @@ cargo test --lib
 cargo test --test
 ```
 
-**Test Results**: 62+ tests passing
-- 34 unit tests (models, config, errors, logging, cache, auth)
+**Test Results**: 70+ tests passing
+- 48 unit tests (models, config, errors, logging, cache, auth, parsing)
   - 7 authentication unit tests (API key generation, validation, middleware)
+  - 9 DONKI parsing and client tests
 - 20 API integration tests (current conditions, historical data, alerts, radiation)
 - 5 rate limiting tests
 - 2 health check tests
 - 6 authentication integration tests (require database connection)
+- 3 security tests (headers, CORS, request limits)
 
 ### Testing the API
 

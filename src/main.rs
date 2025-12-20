@@ -4,7 +4,7 @@ use rusty_server::logging;
 use rusty_server::api::create_router;
 use rusty_server::api::create_rate_limiter;
 use rusty_server::start_server;
-use rusty_server::services::NoaaClient;
+use rusty_server::services::{NoaaClient, DonkiClient};
 use rusty_server::database::DatabasePool;
 use rusty_server::auth::ApiKeyStore;
 use rusty_server::AppState;
@@ -41,6 +41,18 @@ async fn main() -> Result<()> {
         config.noaa.timeout_seconds,
     );
 
+    // Initialize DONKI API client
+    let donki_client = DonkiClient::new(
+        config.donki.base_url.clone(),
+        config.donki.api_key.clone(),
+        config.donki.timeout_seconds,
+    );
+    if config.donki.api_key.is_some() {
+        tracing::info!("DONKI API client initialized with API key");
+    } else {
+        tracing::warn!("DONKI API key not configured - solar flare data will not be available. Set RUSTY_SERVER__DONKI__API_KEY environment variable or add to config.toml");
+    }
+
     // Initialize database connection pool
     let db_pool = DatabasePool::new(&config.database.connection_string).await?;
     
@@ -75,7 +87,7 @@ async fn main() -> Result<()> {
     }
 
     // Create application state
-    let app_state = AppState::new(noaa_client, db_pool, cache, rate_limiter, api_key_store);
+    let app_state = AppState::new(noaa_client, donki_client, db_pool, cache, rate_limiter, api_key_store);
 
     // Create the API router
     let router = create_router(app_state, config.clone());
