@@ -20,7 +20,9 @@ port = 3000
 [database]
 # SECURITY: Replace with your actual database credentials
 # Use environment variable RUSTY_SERVER__DATABASE__CONNECTION_STRING for production
-connection_string = "mysql://USERNAME:PASSWORD@localhost/rusty_server"
+# NOTE: Using test database (rusty_server_test) for development
+# Change to rusty_server when ready for production
+connection_string = "mysql://USERNAME:PASSWORD@localhost/rusty_server_test"
 max_connections = 10
 
 [noaa]

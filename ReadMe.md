@@ -4,7 +4,7 @@ A Rust-based REST API service for fetching, caching, and serving space weather d
 
 ## Project Status
 
-**Current Phase**: Phase 8 - Testing & Quality Assurance  
+**Current Phase**: Phase 8 - Testing & Quality Assurance ✅ COMPLETE  
 **Completed Steps**: 
 - ✅ 1.1 (Project Structure & Dependencies)
 - ✅ 1.2 (Configuration System)
@@ -63,8 +63,9 @@ A Rust-based REST API service for fetching, caching, and serving space weather d
 - ✅ **Solar Flare Data**: Real solar flare data from DONKI integrated into current conditions endpoint
 
 **📋 See [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) for the complete development plan.**  
-**📚 See [OVERVIEW.md](OVERVIEW.md) for architecture and technical details.**
-**🔗 See [CLI_INTEGRATION_PLAN.md](CLI_INTEGRATION_PLAN.md) for CLI_Astro_Calc integration details.**
+**📚 See [OVERVIEW.md](OVERVIEW.md) for architecture and technical details.**  
+**📖 See [Guides/](Guides/) for setup guides, API documentation, and detailed instructions.**  
+**🔧 See [Troubleshooting/](Troubleshooting/) for troubleshooting guides.**
 
 ---
 
@@ -131,7 +132,7 @@ Rusty_Server will host a REST API service for fetching, caching, and serving spa
 ### Prerequisites
 
 - Rust toolchain (latest stable)
-- MySQL (for database) - **See [MYSQL_SETUP_GUIDE.md](MYSQL_SETUP_GUIDE.md)**
+- MySQL (for database) - **See [Guides/MYSQL_SETUP_GUIDE.md](Guides/MYSQL_SETUP_GUIDE.md)**
 - Git (for version control)
 
 ### Setup
@@ -143,7 +144,7 @@ Rusty_Server will host a REST API service for fetching, caching, and serving spa
    ```
 
 2. **Set up MySQL** (for local development):
-   - **📋 See [MYSQL_SETUP_GUIDE.md](MYSQL_SETUP_GUIDE.md) for detailed instructions**
+   - **📋 See [Guides/MYSQL_SETUP_GUIDE.md](Guides/MYSQL_SETUP_GUIDE.md) for detailed instructions**
    - Create a MySQL user and database
    - Fill out `credentials.txt` with your MySQL credentials
 
@@ -171,7 +172,7 @@ Rusty_Server will host a REST API service for fetching, caching, and serving spa
    cargo run
    ```
 
-**📋 For server deployment (much later), see [SERVER_DEPLOYMENT_NOTES.md](SERVER_DEPLOYMENT_NOTES.md)**
+**📋 For server deployment (much later), see [Guides/SERVER_DEPLOYMENT_NOTES.md](Guides/SERVER_DEPLOYMENT_NOTES.md)**
 
 ## Configuration
 
@@ -235,10 +236,17 @@ Rusty_Server/
 
 ### Deployment (Linux Server)
 
-1. Build Linux binary (cross-compile or build on server)
-2. Deploy to server rack
-3. Configure production MySQL
-4. Set up as systemd service
+**📋 See [Guides/SERVER_DEPLOYMENT_NOTES.md](Guides/SERVER_DEPLOYMENT_NOTES.md) for complete step-by-step deployment instructions.**
+
+Quick overview:
+1. Install Linux OS (Ubuntu 22.04 LTS recommended)
+2. Install Rust toolchain and MySQL
+3. Build Linux binary (`cargo build --release`)
+4. Set up production database
+5. Configure application (config.toml or environment variables)
+6. Set up as systemd service (see `scripts/rusty-server.service`)
+7. Configure firewall and network access
+8. Optional: Set up nginx reverse proxy and SSL/TLS
 
 ## Testing
 
@@ -263,11 +271,11 @@ cargo test --test
 - 5 rate limiting tests
 - 2 health check tests
 - 6 authentication integration tests (require database connection)
-- 3 security tests (headers, CORS, request limits)
+- 11 security tests (headers, CORS, request limits, SQL injection, XSS, path traversal, input validation)
 
 ### Testing the API
 
-**📋 See [TESTING_GUIDE.md](TESTING_GUIDE.md) for complete testing instructions**, including:
+**📋 See [Guides/QUICK_TEST_GUIDE.md](Guides/QUICK_TEST_GUIDE.md) for complete testing instructions**, including:
 - Local testing
 - Testing from another device on your WiFi
 - Windows Firewall configuration
@@ -300,13 +308,14 @@ Invoke-WebRequest -Uri http://localhost:3000/health -UseBasicParsing
 - ✅ Request size limits
 - ✅ Security logging
 
-**📋 See [SECURITY.md](SECURITY.md) for detailed security guidelines and credential management.**
+**📋 See [SECURITY.md](SECURITY.md) for detailed security guidelines and credential management.**  
+**📋 See [Troubleshooting/BUILD_TROUBLESHOOTING.md](Troubleshooting/BUILD_TROUBLESHOOTING.md) for build issues.**
 
 ## Troubleshooting
 
 ### Build Errors
 
-If you encounter linker errors (LNK1104), this is often caused by antivirus software. See [BUILD_TROUBLESHOOTING.md](BUILD_TROUBLESHOOTING.md) for solutions.
+If you encounter linker errors (LNK1104), this is often caused by antivirus software. See [Troubleshooting/BUILD_TROUBLESHOOTING.md](Troubleshooting/BUILD_TROUBLESHOOTING.md) for solutions.
 
 **Quick fix:**
 1. Add `target/` folder to antivirus exclusions

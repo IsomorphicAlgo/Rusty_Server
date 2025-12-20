@@ -41,7 +41,9 @@ pub struct DatabaseConfig {
 impl Default for DatabaseConfig {
     fn default() -> Self {
         Self {
-            connection_string: "mysql://user:password@localhost/rusty_server".to_string(),
+            // Using test database by default for development
+            // Change to rusty_server when ready for production
+            connection_string: "mysql://user:password@localhost/rusty_server_test".to_string(),
             max_connections: 10,
         }
     }

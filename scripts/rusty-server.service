@@ -1,0 +1,29 @@
+[Unit]
+Description=Rusty Server - Space Weather API
+After=network.target mysql.service
+Requires=mysql.service
+
+[Service]
+Type=simple
+User=rusty-server
+Group=rusty-server
+WorkingDirectory=/opt/rusty-server
+ExecStart=/opt/rusty-server/target/release/rusty-server
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rusty-server
+
+# Environment variables (optional - can use config.toml instead)
+# Uncomment and set values if using environment variables instead of config.toml
+# Environment="RUSTY_SERVER__DATABASE__CONNECTION_STRING=mysql://rusty_user:password@localhost:3306/rusty_server"
+# Environment="RUSTY_SERVER__DONKI__API_KEY=your_key_here"
+# Environment="RUSTY_SERVER__AUTH__JWT_SECRET=your_secret_here"
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

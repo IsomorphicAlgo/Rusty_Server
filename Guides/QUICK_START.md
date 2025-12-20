@@ -50,7 +50,7 @@ Invoke-WebRequest -Uri http://localhost:3000/api/v1/space-weather/current -UseBa
 2. Configure Windows Firewall to allow port 3000
 3. From another device: `http://YOUR_IP:3000/health`
 
-See TESTING_GUIDE.md for detailed instructions.
+See [TESTING_GUIDE.md](TESTING_GUIDE.md) for detailed instructions.
 
 ## Common Commands
 

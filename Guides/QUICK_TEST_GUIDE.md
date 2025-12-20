@@ -6,20 +6,22 @@
 
 **PowerShell:**
 ```powershell
-# From credentials.txt: DB_USER=rusty_user, DB_PASSWORD=CXRTV8_7?4sPQ&f, DB_NAME=rusty_server
+# From credentials.txt: DB_USER=rusty_user, DB_PASSWORD=CXRTV8_7?4sPQ&f, DB_NAME=rusty_server_test
+# Note: Using TEST database (rusty_server_test) for development
 # Note: Special characters in password need URL encoding (? = %3F, & = %26)
-$env:RUSTY_SERVER__DATABASE__CONNECTION_STRING="mysql://rusty_user:CXRTV8_7%3F4sPQ%26f@localhost:3306/rusty_server"
+$env:RUSTY_SERVER__DATABASE__CONNECTION_STRING="mysql://rusty_user:CXRTV8_7%3F4sPQ%26f@localhost:3306/rusty_server_test"
 ```
 
 **Command Prompt:**
 ```cmd
-set RUSTY_SERVER__DATABASE__CONNECTION_STRING=mysql://rusty_user:CXRTV8_7%3F4sPQ%26f@localhost:3306/rusty_server
+set RUSTY_SERVER__DATABASE__CONNECTION_STRING=mysql://rusty_user:CXRTV8_7%3F4sPQ%26f@localhost:3306/rusty_server_test
 ```
 
 **Or create `config.toml` in project root:**
 ```toml
 [database]
-connection_string = "mysql://rusty_user:CXRTV8_7%3F4sPQ%26f@localhost:3306/rusty_server"
+# Using test database for development - change to rusty_server for production
+connection_string = "mysql://rusty_user:CXRTV8_7%3F4sPQ%26f@localhost:3306/rusty_server_test"
 ```
 
 ### 2. Set DONKI API Key (if not in config.toml)
