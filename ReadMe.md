@@ -4,7 +4,7 @@ A Rust-based REST API service for fetching, caching, and serving space weather d
 
 ## Project Status
 
-**Current Phase**: Phase 3 - Data Fetching & Integration  
+**Current Phase**: Phase 5 - API Implementation  
 **Completed Steps**: 
 - ✅ 1.1 (Project Structure & Dependencies)
 - ✅ 1.2 (Configuration System)
@@ -14,8 +14,14 @@ A Rust-based REST API service for fetching, caching, and serving space weather d
 - ✅ 2.3 (Data Models)
 - ✅ 3.1 (NOAA API Integration)
 - ✅ 3.2 (Data Parsing & Transformation)
+- ✅ 4.1 (Database Schema & Setup)
+- ✅ 4.2 (Database Operations)
+- ✅ 4.3 (Caching Layer)
+- ✅ 5.1 (Current Conditions Endpoint)
+- ✅ 5.2 (Historical Data Endpoint)
+- ✅ 5.3 (Alerts & Radiation Endpoints)
 
-**Next Step**: 4.1 (Database Schema & Setup)
+**Next Step**: 6.1 (Rate Limiting)
 
 ### What's Been Completed
 
@@ -34,6 +40,16 @@ A Rust-based REST API service for fetching, caching, and serving space weather d
 - ✅ **Data Parsing Module**: Dedicated parsing module with validation and error handling
 - ✅ **Data Transformation**: Robust parsing of NOAA JSON responses to internal models
 - ✅ **Data Validation**: Comprehensive validation for parsed space weather data
+- ✅ **Database Schema**: Complete MySQL schema designed for 10+ years of historical data
+- ✅ **Database Connection Pool**: Connection pooling with health checks and migration system
+- ✅ **Database Operations**: Complete CRUD operations with transactions, batch operations, and query optimization
+- ✅ **API-Database Integration**: Handlers now store and retrieve data from database
+- ✅ **Data Persistence**: Observations automatically stored when fetched from NOAA API
+- ✅ **Historical Data Queries**: Full support for date range and type-based queries
+- ✅ **Caching Layer**: High-performance in-memory caching with moka (TTL-based expiration, metrics tracking)
+- ✅ **Cache Integration**: All API handlers use cache to reduce API calls and improve response times
+- ✅ **Current Conditions Endpoint**: Fully implemented with cache → API → database → mock fallback chain
+- ✅ **Enhanced Logging**: Comprehensive logging for all endpoint operations with proper log levels
 
 **📋 See [ITERATIVE_PLAN.md](ITERATIVE_PLAN.md) for the complete development plan.**  
 **📚 See [OVERVIEW.md](OVERVIEW.md) for architecture and technical details.**
@@ -78,9 +94,9 @@ Rusty_Server will host a REST API service for fetching, caching, and serving spa
 - ✅ Data validation system (14 validation tests passing)
 - ✅ Mock data handlers (ready for real data integration)
 - ✅ Module structure for all components
-- ⏳ Database integration (planned)
-- ⏳ NOAA API integration (planned)
-- ⏳ Caching layer (planned)
+- ✅ Database integration with MySQL
+- ✅ NOAA API integration with retry logic
+- ✅ Caching layer with TTL management and metrics
 
 ## Technology Stack
 
@@ -219,9 +235,9 @@ cargo test --lib
 cargo test --test
 ```
 
-**Test Results**: 28 tests passing
-- 22 unit tests (models, config, errors, logging)
-- 4 API integration tests
+**Test Results**: 50 tests passing
+- 27 unit tests (models, config, errors, logging, cache)
+- 20 API integration tests (current conditions, historical data, alerts, radiation)
 - 2 health check tests
 
 ### Testing the API

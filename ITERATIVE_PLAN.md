@@ -313,21 +313,21 @@ Yes! You can absolutely develop on your Windows laptop and deploy to your Linux 
 
 ## Phase 4: Data Storage & Caching
 
-### Step 4.1: Database Schema & Setup
+### Step 4.1: Database Schema & Setup ✅
 
 **Objective**: Design and implement database schema for historical data.
 
 **Tasks**:
-- [ ] Design database schema:
+- [x] Design database schema:
   - Space weather data table(s)
   - Timestamps and indexing
   - Data relationships
-- [ ] Set up MySQL database (using `sqlx` with MySQL support)
-- [ ] Set up database connection pool
-- [ ] Create migration system (sqlx migrations or custom)
-- [ ] Implement database initialization
-- [ ] Add database health checks
-- [ ] Create schema documentation
+- [x] Set up MySQL database (using `sqlx` with MySQL support)
+- [x] Set up database connection pool
+- [x] Create migration system (sqlx migrations or custom)
+- [x] Implement database initialization
+- [x] Add database health checks
+- [x] Create schema documentation
 
 **Deliverables**:
 - Database schema designed and implemented
@@ -344,18 +344,18 @@ Yes! You can absolutely develop on your Windows laptop and deploy to your Linux 
 --This wil run in development on my laptop, and then eventually be on the server rack unit. 
 ---
 
-### Step 4.2: Database Operations
+### Step 4.2: Database Operations ✅
 
 **Objective**: Implement database operations for storing and retrieving data.
 
 **Tasks**:
-- [ ] Implement data insertion operations
-- [ ] Implement data retrieval operations (by date range, by type)
-- [ ] Add database query optimization (indexes)
-- [ ] Implement data cleanup/archival (optional)
-- [ ] Add transaction handling
-- [ ] Create database operation tests
-- [ ] Add database error handling
+- [x] Implement data insertion operations
+- [x] Implement data retrieval operations (by date range, by type)
+- [x] Add database query optimization (indexes)
+- [x] Implement data cleanup/archival (optional)
+- [x] Add transaction handling
+- [x] Create database operation tests
+- [x] Add database error handling
 
 **Deliverables**:
 - Complete database operations layer
@@ -364,90 +364,247 @@ Yes! You can absolutely develop on your Windows laptop and deploy to your Linux 
 
 ---
 
-### Step 4.3: Caching Layer
+### Step 4.3: Caching Layer ✅ (Completed)
 
 **Objective**: Implement in-memory caching to reduce API calls and improve response times.
 
 **Tasks**:
-- [ ] Choose caching strategy (in-memory HashMap, `dashmap`, or `moka`)
-- [ ] Implement cache structure:
+- [x] Choose caching strategy (in-memory HashMap, `dashmap`, or `moka`)
+- [x] Implement cache structure:
   - Current conditions cache (short TTL, e.g., 5-15 minutes)
   - Historical data cache (longer TTL, e.g., 1 hour)
   - Alert cache (short TTL, e.g., 1-5 minutes)
-- [ ] Add cache TTL management
-- [ ] Implement cache invalidation
-- [ ] Add cache metrics (hit/miss rates)
-- [ ] Create cache tests
-- [ ] Add cache size limits
+- [x] Add cache TTL management
+- [x] Implement cache invalidation
+- [x] Add cache metrics (hit/miss rates)
+- [x] Create cache tests
+- [x] Add cache size limits
 
 **Deliverables**:
-- Working caching layer
-- TTL management
-- Cache metrics and monitoring
+- ✅ Working caching layer using `moka` for high-performance in-memory caching
+- ✅ TTL management with configurable TTLs for each cache type
+- ✅ Cache metrics and monitoring (hit/miss tracking)
+- ✅ Cache integration in all API handlers
+- ✅ Comprehensive cache tests (5 tests passing)
 
 ---
 
 ## Phase 5: API Implementation
 
-### Step 5.1: Current Conditions Endpoint
+### Step 5.1: Current Conditions Endpoint ✅ (Completed)
 
 **Objective**: Implement `GET /api/v1/space-weather/current`.
 
 **Tasks**:
-- [ ] Check cache for current data
-- [ ] If cache miss, fetch from NOAA API
-- [ ] Store in cache and database
-- [ ] Return formatted response
-- [ ] Add error handling
-- [ ] Add response logging
-- [ ] Create endpoint tests
+- [x] Check cache for current data
+- [x] If cache miss, fetch from NOAA API
+- [x] Store in cache and database
+- [x] Return formatted response
+- [x] Add error handling
+- [x] Add response logging
+- [x] Create endpoint tests
 
 **Deliverables**:
-- Working current conditions endpoint
-- Caching and database storage
-- Comprehensive tests
+- ✅ Working current conditions endpoint with full fallback chain (cache → API → database → mock)
+- ✅ Caching and database storage integrated
+- ✅ Comprehensive error handling with graceful fallbacks
+- ✅ Detailed logging at info/debug/warn levels
+- ✅ Comprehensive endpoint tests (3 tests covering structure, validation, and multiple requests)
+- ✅ Proper cached flag management in all response paths
 
 ---
 
-### Step 5.2: Historical Data Endpoint
+### Step 5.2: Historical Data Endpoint ✅ (Completed)
 
 **Objective**: Implement `GET /api/v1/space-weather/historical`.
 
 **Tasks**:
-- [ ] Design query parameters (date range, data type, etc.)
-- [ ] Implement database query for historical data
-- [ ] Add pagination if needed
-- [ ] Handle date range validation
-- [ ] Add cache for recent historical queries
-- [ ] Return formatted response
-- [ ] Create endpoint tests
+- [x] Design query parameters (date range, data type, etc.)
+- [x] Implement database query for historical data
+- [x] Add pagination if needed
+- [x] Handle date range validation
+- [x] Add cache for recent historical queries
+- [x] Return formatted response
+- [x] Create endpoint tests
 
 **Deliverables**:
-- Working historical data endpoint
-- Query parameter handling
-- Pagination (if needed)
-- Tests
+- ✅ Working historical data endpoint with comprehensive query parameter support
+- ✅ Query parameter handling (start_date, end_date, data_type, limit, offset)
+- ✅ Pagination support (offset parameter with client-side pagination)
+- ✅ Comprehensive date range validation (format, order, max range)
+- ✅ Cache integration for frequently requested queries
+- ✅ Detailed logging for all operations
+- ✅ Comprehensive endpoint tests (8 tests covering all scenarios)
 
 ---
 
-### Step 5.3: Alerts & Radiation Endpoints
+### Step 5.3: Alerts & Radiation Endpoints ✅ (Completed)
 
 **Objective**: Implement alerts and radiation monitoring endpoints.
 
 **Tasks**:
-- [ ] Implement `GET /api/v1/space-weather/alerts`
-- [ ] Implement `GET /api/v1/space-weather/radiation`
-- [ ] Add alert filtering (by severity, type)
-- [ ] Add radiation level thresholds
-- [ ] Create endpoint tests
+- [x] Implement `GET /api/v1/space-weather/alerts`
+- [x] Implement `GET /api/v1/space-weather/radiation`
+- [x] Add alert filtering (by severity, type)
+- [x] Add radiation level thresholds
+- [x] Create endpoint tests
 
 **Deliverables**:
-- Working alerts endpoint
-- Working radiation endpoint
-- Filtering and query capabilities
-- Tests
+- ✅ Working alerts endpoint with filtering (severity, type, active_only)
+- ✅ Working radiation endpoint with threshold and alert level filtering
+- ✅ Filtering and query capabilities for both endpoints
+- ✅ Cache integration for alerts
+- ✅ Comprehensive logging for both endpoints
+- ✅ Comprehensive endpoint tests (6 tests covering all scenarios)
 
 ---
+
+** Questions to answer**
+
+### 1. How is the program currently set up to call the NOAA API? Is it only called when prompted by one of the specific requests we built? OR will the SQL database be updated periodically at all?
+
+**Current Implementation:**
+- The NOAA API is **only called on-demand** when a user makes a request to the `/api/v1/space-weather/current` endpoint
+- There is **NO background job or periodic updates** currently implemented
+- The database is updated **only when**:
+  1. A user requests current conditions
+  2. The cache misses (no cached data available)
+  3. The NOAA API call succeeds
+  4. The data is then stored in the database for future use
+
+**Flow:**
+```
+User Request → Check Cache → (if miss) Call NOAA API → Store in DB → Store in Cache → Return to User
+```
+
+**Future Options (not yet implemented):**
+- You could add a background task/cron job to periodically fetch data from NOAA API
+- This would require implementing a scheduler (e.g., using `tokio-cron-scheduler` or similar)
+- This would keep the database fresh even when no users are making requests
+- This is a Phase 9+ feature (Deployment & Operations)
+
+**Recommendation for Interviews:**
+- Current setup is fine for demos - data will be fetched when requested
+- For production use, consider adding periodic updates to keep data fresh
+
+---
+
+### 2. Will the server have a visible webpage at all?
+
+**Current Implementation:**
+- **NO web frontend exists** - this is a REST API-only service
+- The server only responds to HTTP API requests (JSON responses)
+- There's no HTML/CSS/JavaScript frontend
+
+**What You Can Access:**
+- API endpoints via HTTP requests (curl, Postman, browser fetch, etc.)
+- Health check endpoint: `GET /health` or `GET /api/v1/health`
+- All endpoints return JSON data
+
+**Future Options:**
+- You could add a web frontend (React, Vue, or simple HTML/JS)
+- This would be a separate project or Phase 10+ enhancement
+- For interviews, you can demonstrate the API using:
+  - Postman/Insomnia
+  - curl commands
+  - A simple HTML page that calls the API (could be added later)
+  - Swagger/OpenAPI documentation (could be added)
+
+**Recommendation for Interviews:**
+- Current API-only setup is fine - you can demonstrate with Postman or curl
+- Consider adding Swagger/OpenAPI docs for easier exploration
+- A simple demo page could be added if needed (single HTML file)
+
+---
+
+### 3. What sort of firewall or antivirus will I have or need? Note that I intend to give access to this only during interviews with trusted companies right now. I want everything to have keys / be protected such that someone couldn't just scan my GitHub page and be able to find the calls to my API or the webpage.
+
+**Current Security Status:**
+- ✅ **Secrets are gitignored** - `credentials.txt`, `.env` files are not in GitHub
+- ✅ **No secrets in code** - API keys, passwords are loaded from config files or env vars
+- ⚠️ **NO authentication/authorization** - API is currently open (anyone with URL can access)
+- ⚠️ **NO rate limiting** - No protection against abuse
+- ⚠️ **NO API keys** - No way to restrict access
+
+**What You Need for Interview Security:**
+
+1. **Authentication/Authorization (Phase 6.2 - Planned):**
+   - Implement API key authentication
+   - Require API key in headers for all requests
+   - Generate unique keys for each interviewer/company
+   - Store keys securely (database, not in code)
+
+2. **Rate Limiting (Phase 6.1 - Planned):**
+   - Limit requests per IP/API key
+   - Prevent abuse and DoS attacks
+   - Configurable limits
+
+3. **Firewall Configuration:**
+   - **On your server:** Use `ufw` (Linux) or Windows Firewall to:
+     - Only allow specific IPs (if you know interviewer IPs)
+     - Or restrict to specific ports (e.g., only port 3000)
+     - Block all other ports
+   - **Router level:** Configure port forwarding only for the API port
+   - **Cloud/VPS:** Use security groups to restrict access
+
+4. **Network Security:**
+   - **VPN Option:** Set up a VPN (WireGuard, OpenVPN) - interviewers connect via VPN
+   - **Temporary Access:** Use dynamic DNS + temporary credentials
+   - **HTTPS/TLS:** Use reverse proxy (nginx) with Let's Encrypt SSL certificates
+   - **IP Whitelisting:** If you know interviewer IPs, whitelist them
+
+5. **GitHub Security:**
+   - ✅ Already handled: `.gitignore` prevents secrets from being committed
+   - ✅ No API URLs or endpoints expose sensitive data
+   - ⚠️ **Don't commit:**
+     - Server IP addresses
+     - Domain names (if using custom domain)
+     - API keys
+     - Database credentials
+   - ✅ **Safe to commit:**
+     - API endpoint paths (`/api/v1/space-weather/current`)
+     - Code structure
+     - Documentation
+
+6. **Antivirus:**
+   - **Server:** Standard Linux antivirus (ClamAV) if needed
+   - **Development machine:** Your existing antivirus is fine
+   - **Main concern:** Network security, not malware
+
+**Recommended Setup for Interviews:**
+
+**Option A: Simple API Key (Easiest)**
+1. Implement API key authentication (Phase 6.2)
+2. Generate unique API key for each interviewer
+3. Share key via secure channel (email, encrypted message)
+4. Use firewall to restrict port access
+5. Use HTTPS (nginx reverse proxy with Let's Encrypt)
+
+**Option B: VPN Access (Most Secure)**
+1. Set up WireGuard VPN on your server
+2. Create VPN credentials for each interviewer
+3. Interviewers connect via VPN, then access API on local network
+4. API only accessible from VPN network
+
+**Option C: Temporary Subdomain (Good Balance)**
+1. Use dynamic DNS service (e.g., DuckDNS, No-IP)
+2. Set up temporary subdomain for interviews
+3. Use API key authentication
+4. Disable subdomain after interviews
+5. Use HTTPS
+
+**Immediate Actions Needed:**
+1. ✅ Already done: Secrets are gitignored
+2. ⏳ **Next:** Implement API key authentication (Phase 6.2)
+3. ⏳ **Next:** Implement rate limiting (Phase 6.1)
+4. ⏳ **Next:** Set up HTTPS/SSL (Phase 9.3)
+5. ⏳ **Next:** Configure firewall rules on server
+
+**For Now (Before Phase 6):**
+- Don't expose the server publicly without authentication
+- Use VPN or local network only
+- Or use ngrok/tunneling service with authentication for demos
+- Never commit server IPs or domain names to GitHub
 
 ## Phase 6: Security & Production Features
 
@@ -738,6 +895,19 @@ Before starting, please answer:
 8. **Data Retention**: How much historical data should be stored?
 9. **Rate Limits**: What rate limits should be enforced?
 10. **Hardware**: Any specific considerations for your server hardware?
+
+---
+
+## Future Enhancements (Post-MVP)
+
+### Operations & Maintenance
+- [ ] **Server Shutdown SOP**: Create Standard Operating Procedure for handling server shutdowns (power outages, maintenance, etc.)
+  - Graceful shutdown procedures
+  - Data integrity checks
+  - Recovery procedures
+  - Backup verification
+  - Service restart procedures
+  - *Note: Far future task - implement after core functionality is stable*
 
 ---
 

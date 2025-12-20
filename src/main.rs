@@ -4,6 +4,7 @@ use rusty_server::logging;
 use rusty_server::api::create_router;
 use rusty_server::start_server;
 use rusty_server::services::NoaaClient;
+use rusty_server::database::DatabasePool;
 use rusty_server::AppState;
 
 #[tokio::main]
@@ -38,14 +39,30 @@ async fn main() -> Result<()> {
         config.noaa.timeout_seconds,
     );
 
+    // Initialize database connection pool
+    let db_pool = DatabasePool::new(&config.database.connection_string).await?;
+    
+    // Run database migrations
+    db_pool.migrate().await?;
+    
+    // Perform database health check
+    db_pool.health_check().await?;
+    tracing::info!("Database connection verified");
+
+    // Initialize cache
+    let cache = rusty_server::SpaceWeatherCache::new(&config.cache);
+    tracing::info!("Cache initialized with TTLs: current={}s, historical={}s, alerts={}s",
+        config.cache.current_conditions_ttl_seconds,
+        config.cache.historical_data_ttl_seconds,
+        config.cache.alerts_ttl_seconds
+    );
+
     // Create application state
-    let app_state = AppState::new(noaa_client);
+    let app_state = AppState::new(noaa_client, db_pool, cache);
 
     // Create the API router
     let router = create_router(app_state);
 
-    // TODO: Initialize database connection pool
-    // TODO: Initialize cache
     // TODO: Add middleware (logging, error handling, etc.)
 
     tracing::info!("Rusty Server initialized successfully");

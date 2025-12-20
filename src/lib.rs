@@ -17,4 +17,6 @@ pub use config::Config;
 pub use server::start_server;
 pub use models::*;
 pub use state::AppState;
+pub use database::{DatabasePool, DatabaseOperations};
+pub use cache::SpaceWeatherCache;
 
