@@ -277,7 +277,6 @@ rsync -avz --exclude 'target/' --exclude '.git/' \
 ```bash
 cd /opt/rusty-server
 
-###Just finished the line above###
 # Build in release mode (optimized)
 cargo build --release
 
@@ -423,7 +422,7 @@ timeout_seconds = 30
 enabled = false  # Set to true after ML service is running
 
 [auth]
-jwt_secret = "generate_strong_random_secret_here"  # MUST CHANGE!
+jwt_secret = XAdhcMnLr8IQuZPlRqbHj6JfsbJRTKh52TA2fOKDF/E=  # MUST CHANGE!
 token_expiry_hours = 24
 require_auth = false  # Set to true in production for security
 
@@ -637,7 +636,7 @@ StandardError=journal
 SyslogIdentifier=rusty-ml-service
 
 # Environment variables
-Environment="RUSTY_SERVER__DATABASE__CONNECTION_STRING=mysql://rusty_user:password@localhost:3306/rusty_server"
+Environment="RUSTY_SERVER__DATABASE__CONNECTION_STRING=mysql://rusty_user:wordpass@localhost:3306/rusty_server"
 
 # Security settings
 NoNewPrivileges=true
