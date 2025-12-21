@@ -31,7 +31,7 @@ async fn main() -> Result<()> {
     let months = parse_months_arg(&args).unwrap_or(60); // Default: 60 months (5 years)
     let (start_date, end_date) = parse_date_args(&args).unwrap_or_else(|| {
         let end = Utc::now();
-        let start = end - ChronoDuration::days(months * 30);
+        let start = end - ChronoDuration::days((months * 30) as i64);
         (start, end)
     });
 
