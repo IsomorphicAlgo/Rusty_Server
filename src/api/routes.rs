@@ -32,6 +32,13 @@ pub fn create_router(state: AppState, config: Config) -> Router {
         .route("/api/v1/space-weather/historical", get(handlers::get_historical_data))
         .route("/api/v1/space-weather/alerts", get(handlers::get_alerts))
         .route("/api/v1/space-weather/radiation", get(handlers::get_radiation))
+        // Exoplanet endpoints
+        .route("/api/v1/exoplanets", get(handlers::get_exoplanets))
+        .route("/api/v1/exoplanets/:name", get(handlers::get_exoplanet_by_name))
+        // ML Prediction endpoints
+        .route("/api/v1/predictions/solar-flare", get(handlers::predict_solar_flare))
+        .route("/api/v1/predictions/history", get(handlers::get_prediction_history))
+        .route("/api/v1/predictions/accuracy", get(handlers::get_prediction_accuracy))
         // API key management endpoints (these should require auth in production)
         .route("/api/v1/auth/keys", axum::routing::post(auth_handlers::generate_api_key))
         .route("/api/v1/auth/keys", axum::routing::get(auth_handlers::list_api_keys))

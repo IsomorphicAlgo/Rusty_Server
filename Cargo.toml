@@ -50,9 +50,14 @@ argon2 = "0.5"
 
 # Utilities
 uuid = { version = "1.6", features = ["v4", "serde"] }
+urlencoding = "2.1"
 
 # Caching
 moka = { version = "0.12", features = ["future"] }
+
+[[bin]]
+name = "collect_training_data"
+path = "scripts/collect_training_data.rs"
 
 [dev-dependencies]
 tokio-test = "0.4"

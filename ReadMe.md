@@ -25,8 +25,10 @@ A Rust-based REST API service for fetching, caching, and serving space weather d
 - ✅ 6.3 (Security Hardening)
 - ✅ 7.1 (CLI Integration Planning)
 - ✅ 10.1 (NASA DONKI Integration - Solar Flares)
+- ✅ 10.2 (Exoplanet Archive Integration)
+- ✅ 10.3 (ML Model Integration - CPU-based)
 
-**Next Step**: Phase 8 (Testing & Quality Assurance) - In Progress
+**Next Step**: Phase 9 (Deployment & Operations) or Priority B (Web UI)
 
 ### What's Been Completed
 
@@ -61,11 +63,20 @@ A Rust-based REST API service for fetching, caching, and serving space weather d
 - ✅ **Rate Limiting**: Per-IP rate limiting using token bucket algorithm (governor crate)
 - ✅ **DONKI Integration**: NASA DONKI API client for solar flare data (FLR endpoint)
 - ✅ **Solar Flare Data**: Real solar flare data from DONKI integrated into current conditions endpoint
+- ✅ **Exoplanet Archive Integration**: NASA Exoplanet Archive TAP client with ADQL query support
+- ✅ **Exoplanet Data Models**: Complete data models for planetary systems and composite parameters
+- ✅ **Exoplanet Database Schema**: Database tables for storing exoplanet data and discovery notifications
+- ✅ **Exoplanet API Endpoints**: REST endpoints for querying exoplanets with filtering and pagination
+- ✅ **ML Service Integration**: Python microservice for CPU-based solar flare prediction
+- ✅ **XGBoost Model**: CPU-optimized model for solar flare prediction
+- ✅ **Prediction Endpoints**: API endpoints for solar flare predictions with accuracy tracking
+- ✅ **Model Training Pipeline**: Scripts for training models on historical data
 
 **📋 See [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) for the complete development plan.**  
 **📚 See [OVERVIEW.md](OVERVIEW.md) for architecture and technical details.**  
 **📖 See [Guides/](Guides/) for setup guides, API documentation, and detailed instructions.**  
-**🔧 See [Troubleshooting/](Troubleshooting/) for troubleshooting guides.**
+**🔧 See [Troubleshooting/](Troubleshooting/) for troubleshooting guides.**  
+**🖥️ See [Guides/IPMI_SETUP_GUIDE.md](Guides/IPMI_SETUP_GUIDE.md) for remote server management (no monitor needed!).**
 
 ---
 
@@ -117,6 +128,11 @@ Rusty_Server will host a REST API service for fetching, caching, and serving spa
 - ✅ Security logging for authentication failures
 - ✅ NASA DONKI API integration for solar flare data
 - ✅ Solar flare data automatically included in current conditions endpoint
+- ✅ NASA Exoplanet Archive TAP integration for exoplanet data
+- ✅ Exoplanet query endpoints with filtering, sorting, and pagination
+- ✅ Python ML microservice for solar flare prediction (CPU-optimized)
+- ✅ Solar flare prediction API with confidence scores
+- ✅ Prediction accuracy tracking and monitoring
 
 ## Technology Stack
 
@@ -139,21 +155,21 @@ Rusty_Server will host a REST API service for fetching, caching, and serving spa
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/Rusty_Server.git
+   git clone https://github.com/MY_USERNAME/Rusty_Server.git
    cd Rusty_Server
    ```
 
 2. **Set up MySQL** (for local development):
    - **📋 See [Guides/MYSQL_SETUP_GUIDE.md](Guides/MYSQL_SETUP_GUIDE.md) for detailed instructions**
    - Create a MySQL user and database
-   - Fill out `credentials.txt` with your MySQL credentials
+   - Fill out `credentials.txt` with my MySQL credentials
 
 3. **Configure the application**:
    ```bash
    # Copy example config
    cp config.example.toml config.toml
    
-   # Edit config.toml with your settings
+   # Edit config.toml with my settings
    # Or use environment variables (see Configuration section)
    ```
 
@@ -162,8 +178,8 @@ Rusty_Server will host a REST API service for fetching, caching, and serving spa
    # Copy credentials template
    cp credentials.example.txt credentials.txt
    
-   # Edit credentials.txt with your MySQL username, password, etc.
-   # This file is gitignored - your secrets are safe!
+   # Edit credentials.txt with my MySQL username, password, etc.
+   # This file is gitignored - my secrets are safe!
    ```
 
 5. **Build and run**:
@@ -196,6 +212,9 @@ RUSTY_SERVER__NOAA__BASE_URL=https://services.swpc.noaa.gov
 - **Database**: Connection string, max connections
 - **NOAA API**: Base URL, API key (optional), timeout
 - **DONKI API**: Base URL, API key (required), timeout
+- **Exoplanet Archive**: Base URL, timeout (TAP service, no API key required)
+- **ML Service**: Base URL, timeout, enabled flag (Python microservice)
+- **ML Service**: Base URL, timeout, enabled flag (Python microservice)
 - **Cache**: TTL values, size limits
 - **Rate Limiting**: Requests per minute/hour, burst size
 - **Authentication**: JWT secret, token expiry, require auth
@@ -277,7 +296,7 @@ cargo test --test
 
 **📋 See [Guides/QUICK_TEST_GUIDE.md](Guides/QUICK_TEST_GUIDE.md) for complete testing instructions**, including:
 - Local testing
-- Testing from another device on your WiFi
+- Testing from another device on my WiFi
 - Windows Firewall configuration
 - Troubleshooting tips
 
@@ -315,11 +334,11 @@ Invoke-WebRequest -Uri http://localhost:3000/health -UseBasicParsing
 
 ### Build Errors
 
-If you encounter linker errors (LNK1104), this is often caused by antivirus software. See [Troubleshooting/BUILD_TROUBLESHOOTING.md](Troubleshooting/BUILD_TROUBLESHOOTING.md) for solutions.
+If I encounter linker errors (LNK1104), this is often caused by antivirus software. See [Troubleshooting/BUILD_TROUBLESHOOTING.md](Troubleshooting/BUILD_TROUBLESHOOTING.md) for solutions.
 
 **Quick fix:**
 1. Add `target/` folder to antivirus exclusions
-2. Restart your computer
+2. Restart my computer
 3. Run `cargo clean && cargo check`
 
 ## Contributing

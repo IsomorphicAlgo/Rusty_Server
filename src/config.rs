@@ -8,6 +8,8 @@ pub struct Config {
     pub database: DatabaseConfig,
     pub noaa: NoaaConfig,
     pub donki: DonkiConfig,
+    pub exoplanet: ExoplanetConfig,
+    pub ml_service: MLServiceConfig,
     pub cache: CacheConfig,
     pub rate_limit: RateLimitConfig,
     pub auth: AuthConfig,
@@ -81,6 +83,40 @@ impl Default for DonkiConfig {
             base_url: "https://api.nasa.gov/DONKI".to_string(),
             api_key: None,
             timeout_seconds: 30,
+        }
+    }
+}
+
+/// Exoplanet Archive TAP API configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExoplanetConfig {
+    pub base_url: String,
+    pub timeout_seconds: u64,
+}
+
+impl Default for ExoplanetConfig {
+    fn default() -> Self {
+        Self {
+            base_url: "https://exoplanetarchive.ipac.caltech.edu/TAP".to_string(),
+            timeout_seconds: 60, // Longer timeout for TAP queries
+        }
+    }
+}
+
+/// ML Service configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MLServiceConfig {
+    pub base_url: String,
+    pub timeout_seconds: u64,
+    pub enabled: bool,
+}
+
+impl Default for MLServiceConfig {
+    fn default() -> Self {
+        Self {
+            base_url: "http://localhost:8001".to_string(),
+            timeout_seconds: 30,
+            enabled: false, // Disabled by default until model is trained
         }
     }
 }
@@ -223,6 +259,11 @@ impl Config {
             .set_default("donki.base_url", "https://api.nasa.gov/DONKI")?
             .set_default("donki.timeout_seconds", 30)?
             .set_default("donki.api_key", "")?
+            .set_default("exoplanet.base_url", "https://exoplanetarchive.ipac.caltech.edu/TAP")?
+            .set_default("exoplanet.timeout_seconds", 60)?
+            .set_default("ml_service.base_url", "http://localhost:8001")?
+            .set_default("ml_service.timeout_seconds", 30)?
+            .set_default("ml_service.enabled", false)?
             .set_default("cache.current_conditions_ttl_seconds", 900)?
             .set_default("cache.historical_data_ttl_seconds", 3600)?
             .set_default("cache.alerts_ttl_seconds", 300)?
@@ -314,6 +355,8 @@ mod tests {
             database: DatabaseConfig::default(),
             noaa: NoaaConfig::default(),
             donki: DonkiConfig::default(),
+            exoplanet: ExoplanetConfig::default(),
+            ml_service: MLServiceConfig::default(),
             cache: CacheConfig::default(),
             rate_limit: RateLimitConfig::default(),
             auth: AuthConfig::default(),
@@ -336,6 +379,8 @@ mod tests {
             database: DatabaseConfig::default(),
             noaa: NoaaConfig::default(),
             donki: DonkiConfig::default(),
+            exoplanet: ExoplanetConfig::default(),
+            ml_service: MLServiceConfig::default(),
             cache: CacheConfig::default(),
             rate_limit: RateLimitConfig::default(),
             auth: AuthConfig::default(),

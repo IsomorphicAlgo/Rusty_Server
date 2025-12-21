@@ -93,6 +93,9 @@ The service integrates with NOAA (National Oceanic and Atmospheric Administratio
 - **Server**: Host, port settings
 - **Database**: MySQL connection string, pool settings
 - **NOAA**: API endpoints, keys, timeouts
+- **DONKI**: API endpoints, keys, timeouts
+- **Exoplanet Archive**: TAP service URL, timeouts
+- **ML Service**: Service URL, timeout, enabled flag
 - **Cache**: TTL values, size limits
 - **Rate Limiting**: Request limits per minute/hour
 - **Authentication**: JWT secrets, token expiry
@@ -156,6 +159,11 @@ RUSTY_SERVER__DATABASE__CONNECTION_STRING=mysql://...
 - `GET /api/v1/space-weather/historical` - Historical data
 - `GET /api/v1/space-weather/alerts` - Active alerts
 - `GET /api/v1/space-weather/radiation` - Radiation levels
+- `GET /api/v1/exoplanets` - Query exoplanets (with filters)
+- `GET /api/v1/exoplanets/:name` - Get specific exoplanet by name
+- `GET /api/v1/predictions/solar-flare` - Predict solar flare (ML)
+- `GET /api/v1/predictions/history` - Prediction history
+- `GET /api/v1/predictions/accuracy` - Prediction accuracy statistics
 - `GET /api/v1/health` - Health check
 
 ### Response Format
@@ -175,8 +183,12 @@ All responses use JSON format with consistent structure:
 
 ### Planned Tables
 
-- `space_weather_data`: Historical space weather records
-- `alerts`: Space weather alerts
+- `space_weather_observations`: Historical space weather records
+- `space_weather_alerts`: Space weather alerts
+- `exoplanets`: Exoplanet data from NASA Exoplanet Archive
+- `discovery_notifications`: Exoplanet discovery tracking
+- `solar_flare_predictions`: ML predictions with accuracy tracking
+- `model_versions`: ML model version tracking
 - `api_keys`: API key management (if using API keys)
 - `users`: User accounts (if using JWT auth)
 
@@ -240,11 +252,14 @@ All responses use JSON format with consistent structure:
 
 - WebSocket support for real-time updates
 - GraphQL API alternative
-- Machine learning for predictions
-- Additional data source integrations
+- ✅ Machine learning for predictions (CPU-based XGBoost implemented)
+- Additional data source integrations (Mars weather, satellite tracking)
 - Advanced alerting system
 - Web dashboard/UI
 - Mobile app API
+- Exoplanet discovery notifications
+- Periodic exoplanet data synchronization
+- GPU-accelerated models (when hardware available)
 
 ---
 

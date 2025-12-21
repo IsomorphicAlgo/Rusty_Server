@@ -36,6 +36,7 @@ config/*.secret
 
 # Testing and development guides (optional - user preference)
 TESTING_GUIDE.md
+Guides/
 
 # Credentials and passwords
 credentials.txt
@@ -51,6 +52,22 @@ logs/
 *.db
 *.sqlite
 *.sqlite3
+
+# Python / ML Service
+ml_service/__pycache__/
+ml_service/**/__pycache__/
+ml_service/**/*.pyc
+ml_service/**/*.pyo
+ml_service/**/*.pyd
+ml_service/.Python
+ml_service/models/saved/*.pkl
+ml_service/models/saved/*.json
+ml_service/.env
+ml_service/venv/
+ml_service/env/
+ml_service/.venv
+*.egg-info/
+.pytest_cache/
 
 # Build artifacts
 dist/

@@ -149,11 +149,13 @@ impl DonkiClient {
         self.fetch_solar_flares(start_date, Some(end_date)).await
     }
 
-    /// Fetch data with retry logic
+    /// Fetch data with retry logic and rate limit compliance
     /// 
-    /// Implements exponential backoff retry pattern (reuses pattern from noaa.rs).
-    /// Retries up to 3 times on network errors or server errors (5xx).
-    /// Does not retry on client errors (4xx).
+    /// Implements exponential backoff retry pattern with NASA API rate limit compliance.
+    /// - Checks X-RateLimit-Remaining headers
+    /// - Handles 429 (Too Many Requests) with proper backoff
+    /// - Retries up to 3 times on network errors or server errors (5xx)
+    /// - Does not retry on client errors (4xx) except 429
     /// 
     /// # Arguments
     /// * `url` - Full URL to fetch
@@ -170,19 +172,52 @@ impl DonkiClient {
         for attempt in 1..=max_retries {
             match self.client.get(url).send().await {
                 Ok(response) => {
-                    if response.status().is_success() {
+                    // Check rate limit headers (NASA API provides these)
+                    if let Some(remaining) = response.headers().get("X-RateLimit-Remaining") {
+                        if let Ok(remaining_str) = remaining.to_str() {
+                            if let Ok(remaining_count) = remaining_str.parse::<u32>() {
+                                if remaining_count < 10 {
+                                    warn!("DONKI API rate limit low: {} requests remaining", remaining_count);
+                                }
+                            }
+                        }
+                    }
+
+                    let status = response.status();
+                    
+                    if status.is_success() {
                         let json: serde_json::Value = response.json().await?;
                         return Ok(json);
+                    } else if status == 429 {
+                        // Rate limit exceeded - wait longer before retry
+                        let retry_after = response.headers()
+                            .get("Retry-After")
+                            .and_then(|h| h.to_str().ok())
+                            .and_then(|s| s.parse::<u64>().ok())
+                            .unwrap_or(3600); // Default: wait 1 hour if not specified
+                        
+                        last_error = Some(format!(
+                            "Rate limit exceeded (429). Retry after {} seconds",
+                            retry_after
+                        ));
+
+                        if attempt < max_retries {
+                            warn!(
+                                "DONKI rate limit exceeded (attempt {}/{}). Waiting {} seconds before retry...",
+                                attempt, max_retries, retry_after
+                            );
+                            tokio::time::sleep(Duration::from_secs(retry_after)).await;
+                            continue;
+                        }
                     } else {
-                        let status = response.status();
                         last_error = Some(format!(
                             "HTTP {}: {}",
                             status,
                             response.status().canonical_reason().unwrap_or("Unknown")
                         ));
 
-                        if status.is_client_error() {
-                            // Don't retry on client errors (4xx)
+                        if status.is_client_error() && status != 429 {
+                            // Don't retry on other client errors (4xx)
                             break;
                         }
                     }

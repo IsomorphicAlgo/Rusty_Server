@@ -4,7 +4,7 @@ use rusty_server::logging;
 use rusty_server::api::create_router;
 use rusty_server::api::create_rate_limiter;
 use rusty_server::start_server;
-use rusty_server::services::{NoaaClient, DonkiClient};
+use rusty_server::services::{NoaaClient, DonkiClient, ExoplanetClient, MLServiceClient};
 use rusty_server::database::DatabasePool;
 use rusty_server::auth::ApiKeyStore;
 use rusty_server::AppState;
@@ -53,6 +53,34 @@ async fn main() -> Result<()> {
         tracing::warn!("DONKI API key not configured - solar flare data will not be available. Set RUSTY_SERVER__DONKI__API_KEY environment variable or add to config.toml");
     }
 
+    // Initialize Exoplanet Archive TAP client
+    let exoplanet_client = ExoplanetClient::new(
+        config.exoplanet.base_url.clone(),
+        config.exoplanet.timeout_seconds,
+    );
+    tracing::info!("Exoplanet Archive TAP client initialized");
+
+    // Initialize ML Service client (optional, only if enabled)
+    let ml_service_client = if config.ml_service.enabled {
+        let client = MLServiceClient::new(
+            config.ml_service.base_url.clone(),
+            config.ml_service.timeout_seconds,
+        );
+        
+        // Check if service is available
+        let health_check = client.health_check().await;
+        if health_check {
+            tracing::info!("ML service client initialized and healthy");
+        } else {
+            tracing::warn!("ML service client initialized but service is not healthy or model not loaded");
+        }
+        
+        Some(client)
+    } else {
+        tracing::info!("ML service disabled (set ml_service.enabled = true to enable)");
+        None
+    };
+
     // Initialize database connection pool
     let db_pool = DatabasePool::new(&config.database.connection_string).await?;
     
@@ -87,7 +115,7 @@ async fn main() -> Result<()> {
     }
 
     // Create application state
-    let app_state = AppState::new(noaa_client, donki_client, db_pool, cache, rate_limiter, api_key_store);
+    let app_state = AppState::new(noaa_client, donki_client, exoplanet_client, ml_service_client, db_pool, cache, rate_limiter, api_key_store);
 
     // Create the API router
     let router = create_router(app_state, config.clone());

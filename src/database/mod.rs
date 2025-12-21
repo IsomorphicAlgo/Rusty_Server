@@ -5,5 +5,5 @@ pub mod pool;
 pub mod operations;
 
 pub use pool::DatabasePool;
-pub use operations::DatabaseOperations;
+pub use operations::{DatabaseOperations, PredictionRow, PredictionAccuracy};
 

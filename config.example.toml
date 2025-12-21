@@ -38,6 +38,18 @@ base_url = "https://api.nasa.gov/DONKI"
 api_key = ""  # Required for DONKI: Set via RUSTY_SERVER__DONKI__API_KEY environment variable
 timeout_seconds = 30
 
+[exoplanet]
+base_url = "https://exoplanetarchive.ipac.caltech.edu/TAP"
+# Exoplanet Archive TAP service (no API key required)
+timeout_seconds = 60  # Longer timeout for TAP queries
+
+[ml_service]
+base_url = "http://localhost:8001"
+# ML Service (Python microservice for solar flare prediction)
+# Set enabled = true after training a model
+enabled = false  # Enable after training model
+timeout_seconds = 30
+
 [cache]
 current_conditions_ttl_seconds = 900   # 15 minutes
 historical_data_ttl_seconds = 3600     # 1 hour

@@ -27,6 +27,8 @@ Complete step-by-step guide for deploying Rusty Server to your Linux server rack
 - ✅ Your server rack hardware (already have)
 - ✅ Network connection
 - ✅ Power supply
+- ✅ Bootable Ubuntu USB (you have this! ✅)
+- ✅ IPMI/BMC network port (for remote management - no monitor needed!)
 
 ### Software Requirements
 - Linux operating system (Ubuntu 22.04 LTS recommended, or Debian 11+)
@@ -34,6 +36,10 @@ Complete step-by-step guide for deploying Rusty Server to your Linux server rack
 - MySQL 8.0+ or MariaDB 10.6+
 - Git (for cloning repository)
 - Systemd (for service management)
+
+### Remote Management Setup
+- **📋 See [IPMI_SETUP_GUIDE.md](IPMI_SETUP_GUIDE.md) for detailed IPMI setup instructions**
+- **You DON'T need a monitor!** IPMI remote console gives you a virtual monitor on your laptop
 
 ---
 

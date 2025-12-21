@@ -480,3 +480,579 @@ struct ObservationRow {
     radiation_alert_level: Option<String>,
 }
 
+/// Database operations for exoplanet data
+impl DatabaseOperations {
+    /// Store or update an exoplanet
+    pub async fn store_exoplanet(&self, exoplanet: &crate::models::Exoplanet) -> Result<u64> {
+        let result = sqlx::query(
+            r#"
+            INSERT INTO exoplanets (
+                pl_name, hostname, discoverymethod, disc_year, disc_facility, disc_telescope,
+                pl_orbper, pl_orbpererr1, pl_orbpererr2, pl_orbperlim,
+                pl_rade, pl_radeerr1, pl_radeerr2,
+                pl_bmasse, pl_bmasseerr1, pl_bmasseerr2,
+                pl_eqt, st_teff, st_rad, st_mass, sy_dist, sy_pnum,
+                rowupdate, releasedate, last_synced_at
+            ) VALUES (
+                ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?,
+                ?, ?, ?,
+                ?, ?, ?,
+                ?, ?, ?, ?, ?, ?,
+                ?, ?, NOW()
+            )
+            ON DUPLICATE KEY UPDATE
+                hostname = VALUES(hostname),
+                discoverymethod = VALUES(discoverymethod),
+                disc_year = VALUES(disc_year),
+                disc_facility = VALUES(disc_facility),
+                disc_telescope = VALUES(disc_telescope),
+                pl_orbper = VALUES(pl_orbper),
+                pl_orbpererr1 = VALUES(pl_orbpererr1),
+                pl_orbpererr2 = VALUES(pl_orbpererr2),
+                pl_orbperlim = VALUES(pl_orbperlim),
+                pl_rade = VALUES(pl_rade),
+                pl_radeerr1 = VALUES(pl_radeerr1),
+                pl_radeerr2 = VALUES(pl_radeerr2),
+                pl_bmasse = VALUES(pl_bmasse),
+                pl_bmasseerr1 = VALUES(pl_bmasseerr1),
+                pl_bmasseerr2 = VALUES(pl_bmasseerr2),
+                pl_eqt = VALUES(pl_eqt),
+                st_teff = VALUES(st_teff),
+                st_rad = VALUES(st_rad),
+                st_mass = VALUES(st_mass),
+                sy_dist = VALUES(sy_dist),
+                sy_pnum = VALUES(sy_pnum),
+                rowupdate = VALUES(rowupdate),
+                releasedate = VALUES(releasedate),
+                last_synced_at = NOW(),
+                updated_at = NOW()
+            "#
+        )
+        .bind(&exoplanet.pl_name)
+        .bind(&exoplanet.hostname)
+        .bind(&exoplanet.discoverymethod)
+        .bind(exoplanet.disc_year)
+        .bind(&exoplanet.disc_facility)
+        .bind(&exoplanet.disc_telescope)
+        .bind(exoplanet.pl_orbper)
+        .bind(exoplanet.pl_orbpererr1)
+        .bind(exoplanet.pl_orbpererr2)
+        .bind(exoplanet.pl_orbperlim)
+        .bind(exoplanet.pl_rade)
+        .bind(exoplanet.pl_radeerr1)
+        .bind(exoplanet.pl_radeerr2)
+        .bind(exoplanet.pl_bmasse)
+        .bind(exoplanet.pl_bmasseerr1)
+        .bind(exoplanet.pl_bmasseerr2)
+        .bind(exoplanet.pl_eqt)
+        .bind(exoplanet.st_teff)
+        .bind(exoplanet.st_rad)
+        .bind(exoplanet.st_mass)
+        .bind(exoplanet.sy_dist)
+        .bind(exoplanet.sy_pnum)
+        .bind(&exoplanet.rowupdate)
+        .bind(&exoplanet.releasedate)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| {
+            warn!("Failed to store exoplanet: {}", e);
+            crate::AppError::Database(e)
+        })?;
+
+        Ok(result.last_insert_id())
+    }
+
+    /// Query exoplanets with filters
+    pub async fn query_exoplanets(
+        &self,
+        params: &crate::models::ExoplanetQueryParams,
+    ) -> Result<Vec<crate::models::Exoplanet>> {
+        // Build base query with safe field names for ORDER BY
+        let sort_field = params.sort_by.as_deref().unwrap_or("pl_name");
+        // Validate sort field to prevent SQL injection
+        let valid_sort_fields = ["pl_name", "hostname", "disc_year", "pl_rade", "pl_bmasse", "pl_eqt"];
+        let sort_field = if valid_sort_fields.contains(&sort_field) {
+            sort_field
+        } else {
+            "pl_name"
+        };
+        
+        let sort_order = params.sort_order.as_deref().unwrap_or("asc");
+        let sort_order = if sort_order.to_uppercase() == "DESC" { "DESC" } else { "ASC" };
+        
+        let limit = params.limit.unwrap_or(100).min(1000); // Cap at 1000
+        let offset = params.offset.unwrap_or(0);
+
+        // Build query with proper parameterization
+        let mut query = format!(
+            "SELECT pl_name, hostname, discoverymethod, disc_year, disc_facility, disc_telescope, \
+             pl_orbper, pl_orbpererr1, pl_orbpererr2, pl_orbperlim, \
+             pl_rade, pl_radeerr1, pl_radeerr2, \
+             pl_bmasse, pl_bmasseerr1, pl_bmasseerr2, \
+             pl_eqt, st_teff, st_rad, st_mass, sy_dist, sy_pnum, rowupdate, releasedate \
+             FROM exoplanets WHERE 1=1"
+        );
+
+        // Build query string with conditions (safe because we're using parameterized queries)
+        if params.discovery_method.is_some() {
+            query.push_str(" AND discoverymethod = ?");
+        }
+        if params.min_year.is_some() {
+            query.push_str(" AND disc_year >= ?");
+        }
+        if params.max_year.is_some() {
+            query.push_str(" AND disc_year <= ?");
+        }
+        if params.hostname.is_some() {
+            query.push_str(" AND hostname LIKE ?");
+        }
+        if params.min_radius.is_some() {
+            query.push_str(" AND pl_rade >= ?");
+        }
+        if params.max_radius.is_some() {
+            query.push_str(" AND pl_rade <= ?");
+        }
+        if params.min_mass.is_some() {
+            query.push_str(" AND pl_bmasse >= ?");
+        }
+        if params.max_mass.is_some() {
+            query.push_str(" AND pl_bmasse <= ?");
+        }
+
+        query.push_str(&format!(" ORDER BY {} {}", sort_field, sort_order));
+        query.push_str(&format!(" LIMIT {} OFFSET {}", limit, offset));
+
+        // Build query with bindings
+        let mut sqlx_query = sqlx::query_as::<_, ExoplanetRow>(&query);
+        
+        if let Some(ref method) = params.discovery_method {
+            sqlx_query = sqlx_query.bind(method);
+        }
+        if let Some(year) = params.min_year {
+            sqlx_query = sqlx_query.bind(year);
+        }
+        if let Some(year) = params.max_year {
+            sqlx_query = sqlx_query.bind(year);
+        }
+        if let Some(ref host) = params.hostname {
+            sqlx_query = sqlx_query.bind(format!("%{}%", host));
+        }
+        if let Some(radius) = params.min_radius {
+            sqlx_query = sqlx_query.bind(radius);
+        }
+        if let Some(radius) = params.max_radius {
+            sqlx_query = sqlx_query.bind(radius);
+        }
+        if let Some(mass) = params.min_mass {
+            sqlx_query = sqlx_query.bind(mass);
+        }
+        if let Some(mass) = params.max_mass {
+            sqlx_query = sqlx_query.bind(mass);
+        }
+
+        let rows = sqlx_query
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| {
+                warn!("Failed to query exoplanets: {}", e);
+                crate::AppError::Database(e)
+            })?;
+
+        Ok(rows.into_iter().map(|row| row.into()).collect())
+    }
+
+    /// Get exoplanet by name
+    pub async fn get_exoplanet_by_name(&self, pl_name: &str) -> Result<Option<crate::models::Exoplanet>> {
+        let row = sqlx::query_as::<_, ExoplanetRow>(
+            "SELECT pl_name, hostname, discoverymethod, disc_year, disc_facility, disc_telescope, \
+             pl_orbper, pl_orbpererr1, pl_orbpererr2, pl_orbperlim, \
+             pl_rade, pl_radeerr1, pl_radeerr2, \
+             pl_bmasse, pl_bmasseerr1, pl_bmasseerr2, \
+             pl_eqt, st_teff, st_rad, st_mass, sy_dist, sy_pnum, rowupdate, releasedate \
+             FROM exoplanets WHERE pl_name = ?"
+        )
+        .bind(pl_name)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| {
+            warn!("Failed to get exoplanet by name: {}", e);
+            crate::AppError::Database(e)
+        })?;
+
+        Ok(row.map(|r| r.into()))
+    }
+
+    /// Store discovery notification
+    pub async fn store_discovery_notification(
+        &self,
+        pl_name: &str,
+        hostname: &str,
+        discovery_year: Option<i32>,
+        discovery_method: Option<String>,
+    ) -> Result<u64> {
+        let result = sqlx::query(
+            r#"
+            INSERT INTO discovery_notifications (pl_name, hostname, discovery_year, discovery_method)
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                hostname = VALUES(hostname),
+                discovery_year = VALUES(discovery_year),
+                discovery_method = VALUES(discovery_method)
+            "#
+        )
+        .bind(pl_name)
+        .bind(hostname)
+        .bind(discovery_year)
+        .bind(discovery_method)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| {
+            warn!("Failed to store discovery notification: {}", e);
+            crate::AppError::Database(e)
+        })?;
+
+        Ok(result.last_insert_id())
+    }
+
+    /// Get unprocessed discovery notifications
+    pub async fn get_unprocessed_discoveries(&self) -> Result<Vec<crate::models::DiscoveryNotification>> {
+        let rows = sqlx::query_as::<_, DiscoveryNotificationRow>(
+            "SELECT id, pl_name, hostname, discovery_year, discovery_method, notification_sent, created_at, notified_at
+             FROM discovery_notifications
+             WHERE notification_sent = FALSE
+             ORDER BY created_at DESC"
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| {
+            warn!("Failed to get unprocessed discoveries: {}", e);
+            crate::AppError::Database(e)
+        })?;
+
+        Ok(rows.into_iter().map(|row| row.into()).collect())
+    }
+
+    /// Mark discovery notification as sent
+    pub async fn mark_notification_sent(&self, id: u64) -> Result<()> {
+        sqlx::query(
+            "UPDATE discovery_notifications SET notification_sent = TRUE, notified_at = NOW() WHERE id = ?"
+        )
+        .bind(id)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| {
+            warn!("Failed to mark notification as sent: {}", e);
+            crate::AppError::Database(e)
+        })?;
+
+        Ok(())
+    }
+
+    /// Store solar flare prediction
+    pub async fn store_prediction(
+        &self,
+        prediction: &crate::services::PredictionResponse,
+        input_features: &serde_json::Value,
+        model_type: &str,
+    ) -> Result<u64> {
+        let result = sqlx::query(
+            r#"
+            INSERT INTO solar_flare_predictions (
+                prediction_time, predicted_flare_class, predicted_peak_time,
+                confidence_score, model_version, model_type, input_features
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            "#
+        )
+        .bind(prediction.prediction_timestamp)
+        .bind(&prediction.predicted_flare_class)
+        .bind(prediction.predicted_peak_time)
+        .bind(prediction.confidence_score)
+        .bind(&prediction.model_version)
+        .bind(model_type)
+        .bind(input_features)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| {
+            warn!("Failed to store prediction: {}", e);
+            crate::AppError::Database(e)
+        })?;
+
+        Ok(result.last_insert_id())
+    }
+
+    /// Update prediction with actual result
+    pub async fn update_prediction_with_actual(
+        &self,
+        prediction_id: u64,
+        actual_flare_class: Option<&str>,
+        actual_peak_time: Option<DateTime<Utc>>,
+    ) -> Result<()> {
+        // Calculate if prediction was correct
+        let prediction_correct = if let Some(actual) = actual_flare_class {
+            // Get the original prediction
+            let row = sqlx::query(
+                "SELECT predicted_flare_class FROM solar_flare_predictions WHERE id = ?"
+            )
+            .bind(prediction_id)
+            .fetch_optional(&self.pool)
+            .await?;
+
+            if let Some(row) = row {
+                let predicted: Option<String> = row.try_get("predicted_flare_class")?;
+                Some(predicted.as_deref() == Some(actual))
+            } else {
+                None
+            }
+        } else {
+            // No flare occurred - prediction of None would be correct
+            None
+        };
+
+        sqlx::query(
+            r#"
+            UPDATE solar_flare_predictions
+            SET actual_flare_class = ?,
+                actual_peak_time = ?,
+                prediction_correct = ?,
+                updated_at = NOW()
+            WHERE id = ?
+            "#
+        )
+        .bind(actual_flare_class)
+        .bind(actual_peak_time)
+        .bind(prediction_correct)
+        .bind(prediction_id)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| {
+            warn!("Failed to update prediction with actual result: {}", e);
+            crate::AppError::Database(e)
+        })?;
+
+        Ok(())
+    }
+
+    /// Get recent predictions
+    pub async fn get_recent_predictions(&self, limit: usize) -> Result<Vec<PredictionRow>> {
+        let rows = sqlx::query_as::<_, PredictionRowInternal>(
+            "SELECT id, prediction_time, predicted_flare_class, predicted_peak_time, \
+             confidence_score, model_version, model_type, actual_flare_class, \
+             prediction_correct, created_at \
+             FROM solar_flare_predictions \
+             ORDER BY prediction_time DESC \
+             LIMIT ?"
+        )
+        .bind(limit as i64)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| {
+            warn!("Failed to get recent predictions: {}", e);
+            crate::AppError::Database(e)
+        })?;
+
+        Ok(rows.into_iter().map(|r| r.into()).collect())
+    }
+}
+
+/// Public prediction row structure (for API responses)
+#[derive(Debug, Clone)]
+pub struct PredictionRow {
+    pub id: u64,
+    pub prediction_time: DateTime<Utc>,
+    pub predicted_flare_class: Option<String>,
+    pub predicted_peak_time: Option<DateTime<Utc>>,
+    pub confidence_score: f64,
+    pub model_version: String,
+    pub model_type: String,
+    pub actual_flare_class: Option<String>,
+    pub prediction_correct: Option<bool>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Database row structure for predictions (internal)
+#[derive(sqlx::FromRow)]
+struct PredictionRowInternal {
+    id: u64,
+    prediction_time: DateTime<Utc>,
+    predicted_flare_class: Option<String>,
+    predicted_peak_time: Option<DateTime<Utc>>,
+    confidence_score: f64,
+    model_version: String,
+    model_type: String,
+    actual_flare_class: Option<String>,
+    prediction_correct: Option<bool>,
+    created_at: DateTime<Utc>,
+}
+
+impl From<PredictionRowInternal> for PredictionRow {
+    fn from(row: PredictionRowInternal) -> Self {
+        Self {
+            id: row.id,
+            prediction_time: row.prediction_time,
+            predicted_flare_class: row.predicted_flare_class,
+            predicted_peak_time: row.predicted_peak_time,
+            confidence_score: row.confidence_score,
+            model_version: row.model_version,
+            model_type: row.model_type,
+            actual_flare_class: row.actual_flare_class,
+            prediction_correct: row.prediction_correct,
+            created_at: row.created_at,
+        }
+    }
+}
+
+    /// Get prediction accuracy statistics
+    pub async fn get_prediction_accuracy(&self) -> Result<PredictionAccuracy> {
+        let row = sqlx::query(
+            r#"
+            SELECT 
+                COUNT(*) as total_predictions,
+                SUM(CASE WHEN prediction_correct = TRUE THEN 1 ELSE 0 END) as correct_predictions,
+                SUM(CASE WHEN prediction_correct = FALSE THEN 1 ELSE 0 END) as incorrect_predictions,
+                AVG(confidence_score) as avg_confidence
+            FROM solar_flare_predictions
+            WHERE prediction_correct IS NOT NULL
+            "#
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| {
+            warn!("Failed to get prediction accuracy: {}", e);
+            crate::AppError::Database(e)
+        })?;
+
+        let total: i64 = row.try_get("total_predictions")?;
+        let correct: i64 = row.try_get("correct_predictions")?;
+        let incorrect: i64 = row.try_get("incorrect_predictions")?;
+        let avg_confidence: Option<f64> = row.try_get("avg_confidence")?;
+
+        let accuracy = if total > 0 {
+            Some(correct as f64 / total as f64)
+        } else {
+            None
+        };
+
+        Ok(PredictionAccuracy {
+            total_predictions: total as u64,
+            correct_predictions: correct as u64,
+            incorrect_predictions: incorrect as u64,
+            accuracy,
+            avg_confidence,
+        })
+    }
+}
+
+/// Prediction accuracy statistics
+#[derive(Debug)]
+pub struct PredictionAccuracy {
+    pub total_predictions: u64,
+    pub correct_predictions: u64,
+    pub incorrect_predictions: u64,
+    pub accuracy: Option<f64>,
+    pub avg_confidence: Option<f64>,
+}
+
+/// Database row structure for predictions
+#[derive(sqlx::FromRow)]
+struct PredictionRow {
+    id: u64,
+    prediction_time: DateTime<Utc>,
+    predicted_flare_class: Option<String>,
+    predicted_peak_time: Option<DateTime<Utc>>,
+    confidence_score: f64,
+    model_version: String,
+    model_type: String,
+    actual_flare_class: Option<String>,
+    prediction_correct: Option<bool>,
+    created_at: DateTime<Utc>,
+}
+
+/// Database row structure for exoplanets
+#[derive(sqlx::FromRow)]
+struct ExoplanetRow {
+    pl_name: String,
+    hostname: String,
+    discoverymethod: Option<String>,
+    disc_year: Option<i32>,
+    disc_facility: Option<String>,
+    disc_telescope: Option<String>,
+    pl_orbper: Option<f64>,
+    pl_orbpererr1: Option<f64>,
+    pl_orbpererr2: Option<f64>,
+    pl_orbperlim: Option<f64>,
+    pl_rade: Option<f64>,
+    pl_radeerr1: Option<f64>,
+    pl_radeerr2: Option<f64>,
+    pl_bmasse: Option<f64>,
+    pl_bmasseerr1: Option<f64>,
+    pl_bmasseerr2: Option<f64>,
+    pl_eqt: Option<f64>,
+    st_teff: Option<f64>,
+    st_rad: Option<f64>,
+    st_mass: Option<f64>,
+    sy_dist: Option<f64>,
+    sy_pnum: Option<i32>,
+    rowupdate: Option<String>,
+    releasedate: Option<String>,
+}
+
+impl From<ExoplanetRow> for crate::models::Exoplanet {
+    fn from(row: ExoplanetRow) -> Self {
+        Self {
+            pl_name: row.pl_name,
+            hostname: row.hostname,
+            discoverymethod: row.discoverymethod,
+            disc_year: row.disc_year,
+            disc_facility: row.disc_facility,
+            disc_telescope: row.disc_telescope,
+            pl_orbper: row.pl_orbper,
+            pl_orbpererr1: row.pl_orbpererr1,
+            pl_orbpererr2: row.pl_orbpererr2,
+            pl_orbperlim: row.pl_orbperlim,
+            pl_rade: row.pl_rade,
+            pl_radeerr1: row.pl_radeerr1,
+            pl_radeerr2: row.pl_radeerr2,
+            pl_bmasse: row.pl_bmasse,
+            pl_bmasseerr1: row.pl_bmasseerr1,
+            pl_bmasseerr2: row.pl_bmasseerr2,
+            pl_eqt: row.pl_eqt,
+            st_teff: row.st_teff,
+            st_rad: row.st_rad,
+            st_mass: row.st_mass,
+            sy_dist: row.sy_dist,
+            sy_pnum: row.sy_pnum,
+            rowupdate: row.rowupdate,
+            releasedate: row.releasedate,
+        }
+    }
+}
+
+/// Database row structure for discovery notifications
+#[derive(sqlx::FromRow)]
+struct DiscoveryNotificationRow {
+    id: u64,
+    pl_name: String,
+    hostname: String,
+    discovery_year: Option<i32>,
+    discovery_method: Option<String>,
+    notification_sent: bool,
+    created_at: DateTime<Utc>,
+    notified_at: Option<DateTime<Utc>>,
+}
+
+impl From<DiscoveryNotificationRow> for crate::models::DiscoveryNotification {
+    fn from(row: DiscoveryNotificationRow) -> Self {
+        Self {
+            id: row.id,
+            pl_name: row.pl_name,
+            hostname: row.hostname,
+            discovery_year: row.discovery_year,
+            discovery_method: row.discovery_method,
+            notification_sent: row.notification_sent,
+            created_at: row.created_at,
+            notified_at: row.notified_at,
+        }
+    }
+}
+

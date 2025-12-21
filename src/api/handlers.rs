@@ -5,8 +5,9 @@ use axum::{
 use chrono::{Utc, Duration as ChronoDuration, DateTime};
 use crate::models::*;
 use crate::AppState;
-use crate::database::DatabaseOperations;
+use crate::database::{DatabaseOperations, PredictionRow};
 use crate::Result;
+use serde_json;
 
 /// Get current space weather conditions
 /// 
@@ -628,5 +629,357 @@ pub async fn get_radiation(
     };
 
     Ok(Json(response))
+}
+
+/// Get exoplanets with optional filters
+/// 
+/// Queries exoplanets from the database (or TAP service if not in database) with various filters.
+/// 
+/// # Query Parameters
+/// - `limit`: Maximum number of results (default: 100, max: 1000)
+/// - `offset`: Pagination offset (default: 0)
+/// - `discovery_method`: Filter by discovery method (e.g., "Transit", "Radial Velocity")
+/// - `min_year`: Minimum discovery year
+/// - `max_year`: Maximum discovery year
+/// - `hostname`: Filter by host star name (partial match)
+/// - `min_radius`: Minimum planet radius in Earth radii
+/// - `max_radius`: Maximum planet radius in Earth radii
+/// - `min_mass`: Minimum planet mass in Earth masses
+/// - `max_mass`: Maximum planet mass in Earth masses
+/// - `sort_by`: Sort field (pl_name, hostname, disc_year, pl_rade, pl_bmasse, pl_eqt)
+/// - `sort_order`: Sort order (asc or desc)
+/// 
+/// # Response
+/// Returns `ExoplanetResponse` with:
+/// - `data`: Array of exoplanet objects
+/// - `metadata`: Count, timestamp, source
+/// 
+/// # Example
+/// ```bash
+/// GET /api/v1/exoplanets?limit=50&discovery_method=Transit&min_year=2020
+/// ```
+pub async fn get_exoplanets(
+    State(state): State<AppState>,
+    Query(params): Query<crate::models::ExoplanetQueryParams>,
+) -> Result<Json<crate::models::ExoplanetResponse>> {
+    let db_ops = DatabaseOperations::new(state.db_pool.pool().clone());
+    
+    // Query from database
+    match db_ops.query_exoplanets(&params).await {
+        Ok(exoplanets) => {
+            let count = exoplanets.len();
+            tracing::info!("Retrieved {} exoplanets from database", count);
+            
+            Ok(Json(crate::models::ExoplanetResponse {
+                data: exoplanets,
+                metadata: crate::models::ExoplanetMetadata {
+                    count,
+                    timestamp: Utc::now(),
+                    source: "database".to_string(),
+                },
+            }))
+        }
+        Err(e) => {
+            tracing::warn!("Failed to query database: {}, trying TAP service", e);
+            
+            // Fallback to TAP service
+            match state.exoplanet_client.query_exoplanets(&params).await {
+                Ok(exoplanets) => {
+                    let count = exoplanets.len();
+                    tracing::info!("Retrieved {} exoplanets from TAP service", count);
+                    
+                    // Store in database for future queries (async, don't wait)
+                    let db_ops_clone = DatabaseOperations::new(state.db_pool.pool().clone());
+                    let exoplanets_clone = exoplanets.clone();
+                    tokio::spawn(async move {
+                        for exoplanet in exoplanets_clone {
+                            if let Err(e) = db_ops_clone.store_exoplanet(&exoplanet).await {
+                                tracing::warn!("Failed to store exoplanet {}: {}", exoplanet.pl_name, e);
+                            }
+                        }
+                    });
+                    
+                    Ok(Json(crate::models::ExoplanetResponse {
+                        data: exoplanets,
+                        metadata: crate::models::ExoplanetMetadata {
+                            count,
+                            timestamp: Utc::now(),
+                            source: "tap".to_string(),
+                        },
+                    }))
+                }
+                Err(e) => {
+                    tracing::error!("Failed to query TAP service: {}", e);
+                    Err(e)
+                }
+            }
+        }
+    }
+}
+
+/// Get a specific exoplanet by name
+/// 
+/// # Path Parameters
+/// - `name`: Exoplanet name (e.g., "Kepler-186 f")
+/// 
+/// # Response
+/// Returns a single `Exoplanet` object or 404 if not found.
+/// 
+/// # Example
+/// ```bash
+/// GET /api/v1/exoplanets/Kepler-186%20f
+/// ```
+pub async fn get_exoplanet_by_name(
+    State(state): State<AppState>,
+    axum::extract::Path(name): axum::extract::Path<String>,
+) -> Result<Json<crate::models::Exoplanet>> {
+    let db_ops = DatabaseOperations::new(state.db_pool.pool().clone());
+    
+    match db_ops.get_exoplanet_by_name(&name).await {
+        Ok(Some(exoplanet)) => {
+            tracing::info!("Retrieved exoplanet {} from database", name);
+            Ok(Json(exoplanet))
+        }
+        Ok(None) => {
+            tracing::info!("Exoplanet {} not found in database, querying TAP service", name);
+            
+            // Try TAP service - need to query by pl_name, but TAP doesn't support that directly
+            // So we'll query all and filter, or use a different approach
+            // For now, let's query with a limit and check if any match
+            let params = crate::models::ExoplanetQueryParams {
+                limit: Some(1000), // Get a reasonable number to search through
+                ..Default::default()
+            };
+            
+            match state.exoplanet_client.query_exoplanets(&params).await {
+                Ok(exoplanets) => {
+                    // Find the exoplanet with matching name (case-insensitive)
+                    if let Some(exoplanet) = exoplanets.iter()
+                        .find(|e| e.pl_name.eq_ignore_ascii_case(&name))
+                        .cloned()
+                    {
+                        // Store in database
+                        let db_ops_clone = DatabaseOperations::new(state.db_pool.pool().clone());
+                        let exoplanet_clone = exoplanet.clone();
+                        tokio::spawn(async move {
+                            if let Err(e) = db_ops_clone.store_exoplanet(&exoplanet_clone).await {
+                                tracing::warn!("Failed to store exoplanet: {}", e);
+                            }
+                        });
+                        
+                        Ok(Json(exoplanet))
+                    } else {
+                        Err(crate::AppError::NotFound(format!("Exoplanet '{}' not found", name)))
+                    }
+                }
+                Err(e) => {
+                    tracing::error!("Failed to query TAP service: {}", e);
+                    Err(crate::AppError::NotFound(format!("Exoplanet '{}' not found", name)))
+                }
+            }
+        }
+        Err(e) => {
+            tracing::error!("Database error: {}", e);
+            Err(e)
+        }
+    }
+}
+
+/// Predict solar flare based on current conditions
+/// 
+/// Uses ML service to predict solar flare occurrence based on current space weather conditions.
+/// 
+/// # Response
+/// Returns prediction with:
+/// - `predicted_flare_class`: Predicted class (A, B, C, M, X, or None)
+/// - `predicted_peak_time`: Estimated peak time (2 hours from now)
+/// - `confidence_score`: Confidence (0.0 to 1.0)
+/// - `model_version`: Model version used
+/// 
+/// # Errors
+/// Returns 503 if ML service is not available or model not loaded
+/// 
+/// # Example
+/// ```bash
+/// GET /api/v1/predictions/solar-flare
+/// ```
+pub async fn predict_solar_flare(
+    State(state): State<AppState>,
+) -> Result<Json<serde_json::Value>> {
+    // Check if ML service is enabled and available
+    let ml_client = match &state.ml_service_client {
+        Some(client) => client,
+        None => {
+            return Err(crate::AppError::Internal(
+                "ML service is not enabled. Set ml_service.enabled = true in config.".to_string()
+            ));
+        }
+    };
+
+    // Get current space weather conditions
+    let current_conditions = match state.noaa_client.get_current_conditions(Some(&state.donki_client)).await {
+        Ok(response) => response.data,
+        Err(e) => {
+            tracing::warn!("Failed to get current conditions for prediction: {}", e);
+            // Use minimal data if available
+            SpaceWeatherData {
+                solar_flare: None,
+                geomagnetic_storm: None,
+                radiation: None,
+                solar_wind: None,
+                kp_index: None,
+            }
+        }
+    };
+
+    // Calculate days since last flare and flare counts
+    let db_ops = DatabaseOperations::new(state.db_pool.pool().clone());
+    
+    // Get recent flares for context
+    let recent_flares = db_ops.get_observations(
+        Utc::now() - ChronoDuration::days(30),
+        Some(Utc::now()),
+        Some("solar_flare"),
+        Some(100),
+        Some(0),
+    ).await.unwrap_or_default();
+
+    let days_since_last_flare = recent_flares.iter()
+        .find(|obs| obs.data.solar_flare.is_some())
+        .map(|obs| {
+            let flare_time = obs.data.solar_flare.as_ref().unwrap().peak_time;
+            (Utc::now() - flare_time).num_seconds() as f64 / 86400.0
+        })
+        .unwrap_or(30.0);
+
+    let flare_count_7_days = recent_flares.iter()
+        .filter(|obs| {
+            obs.data.solar_flare.is_some() &&
+            (Utc::now() - obs.metadata.timestamp).num_days() <= 7
+        })
+        .count() as i32;
+
+    let flare_count_30_days = recent_flares.len() as i32;
+
+    // Make prediction
+    let prediction = ml_client.predict_solar_flare(
+        &current_conditions,
+        Some(days_since_last_flare),
+        Some((flare_count_7_days, flare_count_30_days)),
+    ).await?;
+
+    // Store prediction in database
+    let input_features = serde_json::json!({
+        "kp_index": current_conditions.kp_index.as_ref().map(|kp| kp.value),
+        "solar_wind_speed": current_conditions.solar_wind.as_ref().map(|sw| sw.speed),
+        "days_since_last_flare": days_since_last_flare,
+        "flare_count_last_7_days": flare_count_7_days,
+        "flare_count_last_30_days": flare_count_30_days,
+    });
+
+    match db_ops.store_prediction(&prediction, &input_features, "XGBoost").await {
+        Ok(id) => {
+            tracing::debug!("Stored prediction in database with id: {}", id);
+        }
+        Err(e) => {
+            tracing::warn!("Failed to store prediction in database: {}", e);
+            // Continue anyway - database failure shouldn't break the API
+        }
+    }
+
+    // Return prediction response
+    Ok(Json(serde_json::json!({
+        "prediction": {
+            "predicted_flare_class": prediction.predicted_flare_class,
+            "predicted_peak_time": prediction.predicted_peak_time,
+            "confidence_score": prediction.confidence_score,
+            "model_version": prediction.model_version,
+            "prediction_timestamp": prediction.prediction_timestamp
+        },
+        "metadata": {
+            "source": "ml_service",
+            "features_used": prediction.features_used
+        }
+    })))
+}
+
+/// Get prediction history
+/// 
+/// Returns recent predictions with their results (if available).
+/// 
+/// # Query Parameters
+/// - `limit`: Maximum number of predictions to return (default: 50, max: 500)
+/// 
+/// # Response
+/// Returns array of predictions with actual results (if available)
+pub async fn get_prediction_history(
+    State(state): State<AppState>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<serde_json::Value>> {
+    let limit = params.get("limit")
+        .and_then(|s| s.parse::<usize>().ok())
+        .unwrap_or(50)
+        .min(500);
+
+    let db_ops = DatabaseOperations::new(state.db_pool.pool().clone());
+    
+    match db_ops.get_recent_predictions(limit).await {
+        Ok(predictions) => {
+            let predictions_json: Vec<serde_json::Value> = predictions.into_iter().map(|p| {
+                serde_json::json!({
+                    "id": p.id,
+                    "prediction_time": p.prediction_time,
+                    "predicted_flare_class": p.predicted_flare_class,
+                    "predicted_peak_time": p.predicted_peak_time,
+                    "confidence_score": p.confidence_score,
+                    "model_version": p.model_version,
+                    "actual_flare_class": p.actual_flare_class,
+                    "prediction_correct": p.prediction_correct,
+                    "created_at": p.created_at
+                })
+            }).collect();
+
+            Ok(Json(serde_json::json!({
+                "predictions": predictions_json,
+                "count": predictions_json.len()
+            })))
+        }
+        Err(e) => {
+            tracing::warn!("Failed to get prediction history: {}", e);
+            Err(e)
+        }
+    }
+}
+
+/// Get prediction accuracy statistics
+/// 
+/// Returns accuracy metrics for predictions that have been verified with actual results.
+/// 
+/// # Response
+/// Returns accuracy statistics including:
+/// - Total predictions with results
+/// - Correct/incorrect counts
+/// - Accuracy percentage
+/// - Average confidence
+pub async fn get_prediction_accuracy(
+    State(state): State<AppState>,
+) -> Result<Json<serde_json::Value>> {
+    let db_ops = DatabaseOperations::new(state.db_pool.pool().clone());
+    
+    match db_ops.get_prediction_accuracy().await {
+        Ok(accuracy) => {
+            Ok(Json(serde_json::json!({
+                "total_predictions": accuracy.total_predictions,
+                "correct_predictions": accuracy.correct_predictions,
+                "incorrect_predictions": accuracy.incorrect_predictions,
+                "accuracy": accuracy.accuracy,
+                "avg_confidence": accuracy.avg_confidence
+            })))
+        }
+        Err(e) => {
+            tracing::warn!("Failed to get prediction accuracy: {}", e);
+            Err(e)
+        }
+    }
 }
 
