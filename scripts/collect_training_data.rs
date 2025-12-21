@@ -190,12 +190,12 @@ fn parse_date_args(args: &[String]) -> Option<(DateTime<Utc>, DateTime<Utc>)> {
         if arg == "--start-date" && i + 1 < args.len() {
             if let Ok(date) = NaiveDate::parse_from_str(&args[i + 1], "%Y-%m-%d") {
                 start_date = date.and_hms_opt(0, 0, 0)
-                    .and_then(|dt| DateTime::from_naive_utc_and_offset(dt, Utc));
+                    .map(|dt| DateTime::from_naive_utc_and_offset(dt, Utc));
             }
         } else if arg == "--end-date" && i + 1 < args.len() {
             if let Ok(date) = NaiveDate::parse_from_str(&args[i + 1], "%Y-%m-%d") {
                 end_date = date.and_hms_opt(23, 59, 59)
-                    .and_then(|dt| DateTime::from_naive_utc_and_offset(dt, Utc));
+                    .map(|dt| DateTime::from_naive_utc_and_offset(dt, Utc));
             }
         }
     }
