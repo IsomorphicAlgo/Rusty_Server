@@ -853,6 +853,46 @@ impl DatabaseOperations {
 
         Ok(rows.into_iter().map(|r| r.into()).collect())
     }
+
+    /// Get prediction accuracy statistics
+    pub async fn get_prediction_accuracy(&self) -> Result<PredictionAccuracy> {
+        let row = sqlx::query(
+            r#"
+            SELECT 
+                COUNT(*) as total_predictions,
+                SUM(CASE WHEN prediction_correct = TRUE THEN 1 ELSE 0 END) as correct_predictions,
+                SUM(CASE WHEN prediction_correct = FALSE THEN 1 ELSE 0 END) as incorrect_predictions,
+                AVG(confidence_score) as avg_confidence
+            FROM solar_flare_predictions
+            WHERE prediction_correct IS NOT NULL
+            "#
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| {
+            warn!("Failed to get prediction accuracy: {}", e);
+            crate::AppError::Database(e)
+        })?;
+
+        let total: i64 = row.try_get("total_predictions")?;
+        let correct: i64 = row.try_get("correct_predictions")?;
+        let incorrect: i64 = row.try_get("incorrect_predictions")?;
+        let avg_confidence: Option<f64> = row.try_get("avg_confidence")?;
+
+        let accuracy = if total > 0 {
+            Some(correct as f64 / total as f64)
+        } else {
+            None
+        };
+
+        Ok(PredictionAccuracy {
+            total_predictions: total as u64,
+            correct_predictions: correct as u64,
+            incorrect_predictions: incorrect as u64,
+            accuracy,
+            avg_confidence,
+        })
+    }
 }
 
 /// Public prediction row structure (for API responses)
@@ -902,47 +942,6 @@ impl From<PredictionRowInternal> for PredictionRow {
     }
 }
 
-    /// Get prediction accuracy statistics
-    pub async fn get_prediction_accuracy(&self) -> Result<PredictionAccuracy> {
-        let row = sqlx::query(
-            r#"
-            SELECT 
-                COUNT(*) as total_predictions,
-                SUM(CASE WHEN prediction_correct = TRUE THEN 1 ELSE 0 END) as correct_predictions,
-                SUM(CASE WHEN prediction_correct = FALSE THEN 1 ELSE 0 END) as incorrect_predictions,
-                AVG(confidence_score) as avg_confidence
-            FROM solar_flare_predictions
-            WHERE prediction_correct IS NOT NULL
-            "#
-        )
-        .fetch_one(&self.pool)
-        .await
-        .map_err(|e| {
-            warn!("Failed to get prediction accuracy: {}", e);
-            crate::AppError::Database(e)
-        })?;
-
-        let total: i64 = row.try_get("total_predictions")?;
-        let correct: i64 = row.try_get("correct_predictions")?;
-        let incorrect: i64 = row.try_get("incorrect_predictions")?;
-        let avg_confidence: Option<f64> = row.try_get("avg_confidence")?;
-
-        let accuracy = if total > 0 {
-            Some(correct as f64 / total as f64)
-        } else {
-            None
-        };
-
-        Ok(PredictionAccuracy {
-            total_predictions: total as u64,
-            correct_predictions: correct as u64,
-            incorrect_predictions: incorrect as u64,
-            accuracy,
-            avg_confidence,
-        })
-    }
-}
-
 /// Prediction accuracy statistics
 #[derive(Debug)]
 pub struct PredictionAccuracy {
@@ -951,21 +950,6 @@ pub struct PredictionAccuracy {
     pub incorrect_predictions: u64,
     pub accuracy: Option<f64>,
     pub avg_confidence: Option<f64>,
-}
-
-/// Database row structure for predictions
-#[derive(sqlx::FromRow)]
-struct PredictionRow {
-    id: u64,
-    prediction_time: DateTime<Utc>,
-    predicted_flare_class: Option<String>,
-    predicted_peak_time: Option<DateTime<Utc>>,
-    confidence_score: f64,
-    model_version: String,
-    model_type: String,
-    actual_flare_class: Option<String>,
-    prediction_correct: Option<bool>,
-    created_at: DateTime<Utc>,
 }
 
 /// Database row structure for exoplanets

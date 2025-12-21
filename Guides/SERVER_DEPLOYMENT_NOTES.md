@@ -170,7 +170,6 @@ sudo apt update
 
 # Install MySQL server
 sudo apt install -y mysql-server
-
 # Secure MySQL installation
 sudo mysql_secure_installation
 
@@ -254,7 +253,7 @@ sudo mkdir -p /opt/rusty-server
 sudo chown $USER:$USER /opt/rusty-server
 
 cd /opt/rusty-server
-git clone <your-repo-url> .
+git clone <https://github.com/IsomorphicAlgo/Rusty_Server> .
 
 # Or if using SSH key:
 git clone git@github.com:YOUR_USERNAME/Rusty_Server.git .
@@ -278,6 +277,7 @@ rsync -avz --exclude 'target/' --exclude '.git/' \
 ```bash
 cd /opt/rusty-server
 
+###Just finished the line above###
 # Build in release mode (optimized)
 cargo build --release
 
