@@ -838,10 +838,8 @@ pub async fn predict_solar_flare(
     // Get recent flares for context
     let recent_flares = db_ops.get_observations(
         Utc::now() - ChronoDuration::days(30),
-        Some(Utc::now()),
-        Some("solar_flare"),
+        Utc::now(),
         Some(100),
-        Some(0),
     ).await.unwrap_or_default();
 
     let days_since_last_flare = recent_flares.iter()
