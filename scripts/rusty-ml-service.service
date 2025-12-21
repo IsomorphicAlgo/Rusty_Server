@@ -1,0 +1,28 @@
+[Unit]
+Description=Rusty Server ML Service - Solar Flare Prediction
+After=network.target mysql.service
+Requires=mysql.service
+
+[Service]
+Type=simple
+User=rusty-server
+Group=rusty-server
+WorkingDirectory=/opt/rusty-server/ml_service
+Environment="PATH=/opt/rusty-server/ml_service/venv/bin"
+ExecStart=/opt/rusty-server/ml_service/venv/bin/python3 /opt/rusty-server/ml_service/app.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rusty-ml-service
+
+# Environment variables
+# Uncomment and set if using environment variables instead of config
+# Environment="RUSTY_SERVER__DATABASE__CONNECTION_STRING=mysql://rusty_user:password@localhost:3306/rusty_server"
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

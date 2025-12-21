@@ -4,6 +4,40 @@ Complete step-by-step guide for deploying Rusty Server to your Linux server rack
 
 ---
 
+######### New User Notes##########
+rusty_server is now connected via SSH and windows powershell
+rusty_user@rustyserver:~$ sudo dmidecode -t system | grep -E "Manufacturer|Product"
+        Manufacturer: Supermicro
+        Product Name: PIO-628U-TR4T+-ST031
+password for rusty_user is in credentials
+
+ip addr show
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+       valid_lft forever preferred_lft forever
+2: enp1s0f0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc mq state DOWN group default qlen 1000
+    link/ether 0c:c4:7a:a3:74:8c brd ff:ff:ff:ff:ff:ff
+3: enp1s0f1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
+    link/ether 0c:c4:7a:a3:74:8d brd ff:ff:ff:ff:ff:ff
+    inet 10.0.0.220/24 metric 100 brd 10.0.0.255 scope global dynamic enp1s0f1
+       valid_lft 171636sec preferred_lft 171636sec
+    inet6 2601:601:8600:6a60::8358/128 scope global dynamic noprefixroute
+       valid_lft 214123sec preferred_lft 214123sec
+    inet6 2601:601:8600:6a60:ec4:7aff:fea3:748d/64 scope global dynamic mngtmpaddr noprefixroute
+       valid_lft 215285sec preferred_lft 215285sec
+    inet6 fe80::ec4:7aff:fea3:748d/64 scope link
+       valid_lft forever preferred_lft forever
+4: enp3s0f0: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether 0c:c4:7a:a3:74:8e brd ff:ff:ff:ff:ff:ff
+5: enp3s0f1: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN group default qlen 1000
+    link/ether 0c:c4:7a:a3:74:8f brd ff:ff:ff:ff:ff:ff
+rusty_user@rustyserver:~$ rustc --version
+rustc 1.92.0 (ded5c06cf 2025-12-08)
+
+
 ## Table of Contents
 
 1. [Prerequisites](#prerequisites)
@@ -12,12 +46,13 @@ Complete step-by-step guide for deploying Rusty Server to your Linux server rack
 4. [Building the Application](#building-the-application)
 5. [Database Setup](#database-setup)
 6. [Configuration](#configuration)
-7. [Running the Server](#running-the-server)
-8. [Setting Up as a Service](#setting-up-as-a-service)
-9. [Network Configuration](#network-configuration)
-10. [Testing the Deployment](#testing-the-deployment)
-11. [Monitoring & Maintenance](#monitoring--maintenance)
-12. [Troubleshooting](#troubleshooting)
+7. [ML Service Setup](#ml-service-setup)
+8. [Running the Server](#running-the-server)
+9. [Setting Up as a Service](#setting-up-as-a-service)
+10. [Network Configuration](#network-configuration)
+11. [Testing the Deployment](#testing-the-deployment)
+12. [Monitoring & Maintenance](#monitoring--maintenance)
+13. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -32,10 +67,20 @@ Complete step-by-step guide for deploying Rusty Server to your Linux server rack
 
 ### Software Requirements
 - Linux operating system (Ubuntu 22.04 LTS recommended, or Debian 11+)
-- Rust toolchain (latest stable)
+- Rust toolchain (latest stable) - ✅ Installing now
 - MySQL 8.0+ or MariaDB 10.6+
+- **Python 3.10+** (required for ML service microservice)
+- **pip and Python packages** (for ML service)
 - Git (for cloning repository)
 - Systemd (for service management)
+
+### Server Information (Your Setup)
+- **Manufacturer**: Supermicro
+- **Model**: PIO-628U-TR4T+-ST031
+- **SSH Access**: ✅ Connected via Windows PowerShell
+- **Server IP**: 10.0.0.220 (enp1s0f1 interface)
+- **User**: rusty_user
+- **Rust Version**: 1.92.0 (installed)
 
 ### Remote Management Setup
 - **📋 See [IPMI_SETUP_GUIDE.md](IPMI_SETUP_GUIDE.md) for detailed IPMI setup instructions**
@@ -137,7 +182,40 @@ sudo systemctl enable mysql
 sudo systemctl status mysql
 ```
 
-### Step 3: Install Additional Tools
+### Step 3: Install Python and ML Service Dependencies
+
+**Yes, you need Python on the server!** The ML models run as a separate Python microservice.
+
+```bash
+# Install Python 3.10+ and pip
+sudo apt install -y python3 python3-pip python3-venv
+
+# Verify installation
+python3 --version
+pip3 --version
+
+# Install Python build dependencies (for some ML packages)
+sudo apt install -y python3-dev build-essential
+
+# Optional: Install virtual environment tools
+sudo apt install -y python3-venv
+```
+
+**Why Python?**
+- ML models are implemented as a **Python microservice** (separate service)
+- Rust API communicates with Python ML service via HTTP REST API
+- This allows you to train/tune models easily (as you wanted!)
+- Python service runs on port 8001 (configurable)
+- Rust API calls Python service for predictions
+
+**Architecture:**
+```
+Rust API (Port 3000)  ←→  Python ML Service (Port 8001)
+     ↓                           ↓
+  MySQL Database          XGBoost Model
+```
+
+### Step 4: Install Additional Tools
 
 ```bash
 # Install useful tools
@@ -151,20 +229,49 @@ sudo apt install -y gcc g++ make
 
 ## Building the Application
 
-### Step 1: Clone Repository
+### Step 1: Transfer Files to Server
 
+Since you're connected via SSH, you can transfer files from your Windows laptop:
+
+**Option A: Using SCP (from Windows PowerShell):**
+```powershell
+# From your laptop (PowerShell)
+# Navigate to Rusty_Server directory
+cd C:\Users\micha\Rust\Rusty_Server
+
+# Transfer entire project (excluding target/ and other build artifacts)
+scp -r -o StrictHostKeyChecking=no \
+    --exclude='target/' \
+    --exclude='.git/' \
+    --exclude='credentials.txt' \
+    * rusty_user@10.0.0.220:/opt/rusty-server/
+```
+
+**Option B: Using Git (Recommended):**
 ```bash
-# Create application directory
+# On server
 sudo mkdir -p /opt/rusty-server
 sudo chown $USER:$USER /opt/rusty-server
 
-# Clone repository (or transfer files from your laptop)
 cd /opt/rusty-server
 git clone <your-repo-url> .
 
-# Or if transferring from laptop:
-# Use scp, rsync, or copy files manually
+# Or if using SSH key:
+git clone git@github.com:YOUR_USERNAME/Rusty_Server.git .
 ```
+
+**Option C: Using rsync (if available on Windows):**
+```powershell
+# From Windows (if you have WSL or rsync installed)
+rsync -avz --exclude 'target/' --exclude '.git/' \
+    C:\Users\micha\Rust\Rusty_Server\ \
+    rusty_user@10.0.0.220:/opt/rusty-server/
+```
+
+**Option D: Manual Transfer:**
+- Use WinSCP, FileZilla, or similar SFTP client
+- Connect to `10.0.0.220` as `rusty_user`
+- Transfer project files
 
 ### Step 2: Build the Application
 
@@ -184,11 +291,43 @@ ls -lh target/release/rusty-server
 ./target/release/rusty-server --help  # (if help flag exists)
 ```
 
-### Step 3: Create Application Directory Structure
+### Step 3: Set Up ML Service
+
+**The ML service is a separate Python microservice that runs alongside the Rust API.**
+
+```bash
+cd /opt/rusty-server
+
+# Check if ml_service directory exists
+ls -la ml_service/
+
+# If ml_service directory exists, set it up:
+cd ml_service
+
+# Create virtual environment (recommended)
+python3 -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Verify installation
+python3 --version
+pip list
+
+# Deactivate virtual environment (for now)
+deactivate
+```
+
+**Note**: The ML service will run as a separate service. We'll set it up as a systemd service later.
+
+### Step 4: Create Application Directory Structure
 
 ```bash
 # Create directories for runtime files
-sudo mkdir -p /opt/rusty-server/{config,logs,data}
+sudo mkdir -p /opt/rusty-server/{config,logs,data,backups}
 sudo chown -R $USER:$USER /opt/rusty-server
 ```
 
@@ -274,6 +413,15 @@ base_url = "https://api.nasa.gov/DONKI"
 api_key = "your_donki_api_key_here"  # Required for solar flares
 timeout_seconds = 30
 
+[exoplanet]
+base_url = "https://exoplanetarchive.ipac.caltech.edu/TAP"
+timeout_seconds = 60
+
+[ml_service]
+base_url = "http://localhost:8001"  # Python ML service
+timeout_seconds = 30
+enabled = false  # Set to true after ML service is running
+
 [auth]
 jwt_secret = "generate_strong_random_secret_here"  # MUST CHANGE!
 token_expiry_hours = 24
@@ -319,6 +467,39 @@ RUSTY_SERVER__LOGGING__FORMAT=json
 ```
 
 **Note**: Environment variables take precedence over config.toml.
+
+---
+
+## ML Service Setup
+
+**📋 See [ML_SERVICE_DEPLOYMENT.md](ML_SERVICE_DEPLOYMENT.md) for complete ML service setup instructions.**
+
+**Quick Setup:**
+
+1. **Install Python dependencies:**
+   ```bash
+   cd /opt/rusty-server/ml_service
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
+
+2. **Train initial model:**
+   ```bash
+   # Collect training data
+   cargo run --bin collect_training_data
+   
+   # Train model
+   python train_model.py
+   ```
+
+3. **Test ML service:**
+   ```bash
+   python app.py
+   # Should start on http://localhost:8001
+   ```
+
+4. **Set up as systemd service** (see Step 8 below)
 
 ---
 
@@ -371,10 +552,19 @@ pkill rusty-server
 
 ### Method 3: Systemd Service (Recommended for Production)
 
-Create systemd service file:
+**You'll need TWO systemd services:**
+1. **rusty-server.service** - Rust API (port 3000)
+2. **rusty-ml-service.service** - Python ML service (port 8001)
+
+#### Create Rust API Service
 
 ```bash
 sudo nano /etc/systemd/system/rusty-server.service
+```
+
+**Or copy from scripts folder:**
+```bash
+sudo cp /opt/rusty-server/scripts/rusty-server.service /etc/systemd/system/
 ```
 
 Add this content:
@@ -419,46 +609,95 @@ sudo useradd -r -s /bin/false -d /opt/rusty-server rusty-server
 sudo chown -R rusty-server:rusty-server /opt/rusty-server
 ```
 
-**Enable and start the service:**
+#### Create Python ML Service
+
+```bash
+sudo nano /etc/systemd/system/rusty-ml-service.service
+```
+
+Add this content:
+
+```ini
+[Unit]
+Description=Rusty Server ML Service - Solar Flare Prediction
+After=network.target mysql.service
+Requires=mysql.service
+
+[Service]
+Type=simple
+User=rusty-server
+Group=rusty-server
+WorkingDirectory=/opt/rusty-server/ml_service
+Environment="PATH=/opt/rusty-server/ml_service/venv/bin"
+ExecStart=/opt/rusty-server/ml_service/venv/bin/python3 /opt/rusty-server/ml_service/app.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rusty-ml-service
+
+# Environment variables
+Environment="RUSTY_SERVER__DATABASE__CONNECTION_STRING=mysql://rusty_user:password@localhost:3306/rusty_server"
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Enable and start both services:**
 
 ```bash
 # Reload systemd
 sudo systemctl daemon-reload
 
-# Enable service (start on boot)
+# Enable services (start on boot)
 sudo systemctl enable rusty-server
+sudo systemctl enable rusty-ml-service
 
-# Start the service
+# Start services
 sudo systemctl start rusty-server
+sudo systemctl start rusty-ml-service
 
 # Check status
 sudo systemctl status rusty-server
+sudo systemctl status rusty-ml-service
 
 # View logs
 sudo journalctl -u rusty-server -f
+sudo journalctl -u rusty-ml-service -f
 ```
 
 **Service Management Commands:**
 
 ```bash
-# Start service
+# Start services
 sudo systemctl start rusty-server
+sudo systemctl start rusty-ml-service
 
-# Stop service
+# Stop services
 sudo systemctl stop rusty-server
+sudo systemctl stop rusty-ml-service
 
-# Restart service
+# Restart services
 sudo systemctl restart rusty-server
+sudo systemctl restart rusty-ml-service
 
 # Check status
 sudo systemctl status rusty-server
+sudo systemctl status rusty-ml-service
 
 # View logs
 sudo journalctl -u rusty-server -n 50
-sudo journalctl -u rusty-server -f  # Follow logs
+sudo journalctl -u rusty-ml-service -n 50
+sudo journalctl -u rusty-server -f  # Follow Rust API logs
+sudo journalctl -u rusty-ml-service -f  # Follow ML service logs
 
 # Disable auto-start
 sudo systemctl disable rusty-server
+sudo systemctl disable rusty-ml-service
 ```
 
 ---
@@ -579,6 +818,7 @@ sudo certbot --nginx -d your-domain.com
 
 ### Step 1: Health Check
 
+**Test Rust API:**
 ```bash
 # From server
 curl http://localhost:3000/health
@@ -587,8 +827,18 @@ curl http://localhost:3000/health
 # {"status":"healthy","timestamp":...,"service":"rusty-server","version":"0.1.0"}
 ```
 
+**Test ML Service:**
+```bash
+# From server
+curl http://localhost:8001/health
+
+# Expected response:
+# {"status":"healthy","model_loaded":true,"model_version":"v1"}
+```
+
 ### Step 2: Test API Endpoints
 
+**Rust API Endpoints:**
 ```bash
 # Current conditions
 curl http://localhost:3000/api/v1/space-weather/current
@@ -598,6 +848,23 @@ curl "http://localhost:3000/api/v1/space-weather/historical?limit=5"
 
 # Alerts
 curl http://localhost:3000/api/v1/space-weather/alerts
+
+# Solar flare prediction (if ML service enabled)
+curl http://localhost:3000/api/v1/space-weather/predict
+```
+
+**ML Service Endpoints:**
+```bash
+# Health check
+curl http://localhost:8001/health
+
+# List models
+curl http://localhost:8001/models
+
+# Direct prediction (if endpoint exists)
+curl -X POST http://localhost:8001/predict \
+  -H "Content-Type: application/json" \
+  -d '{"features": {...}}'
 ```
 
 ### Step 3: Test from External Machine
@@ -717,6 +984,8 @@ Add:
 
 ### Step 4: Update Procedure
 
+**Updating Rust API:**
+
 ```bash
 # Stop service
 sudo systemctl stop rusty-server
@@ -740,6 +1009,39 @@ sudo systemctl start rusty-server
 # Verify
 sudo systemctl status rusty-server
 curl http://localhost:3000/health
+```
+
+**Updating ML Service:**
+
+```bash
+# Stop ML service
+sudo systemctl stop rusty-ml-service
+
+# Navigate to ML service directory
+cd /opt/rusty-server/ml_service
+
+# Activate virtual environment
+source venv/bin/activate
+
+# Pull latest code or transfer new files
+git pull
+# Or: scp new files from laptop
+
+# Update Python dependencies (if requirements.txt changed)
+pip install -r requirements.txt --upgrade
+
+# Retrain model if needed (optional)
+# python train_model.py
+
+# Deactivate virtual environment
+deactivate
+
+# Start service
+sudo systemctl start rusty-ml-service
+
+# Verify
+sudo systemctl status rusty-ml-service
+curl http://localhost:8001/health
 ```
 
 ---
@@ -846,35 +1148,49 @@ curl http://localhost:3000/health
 ### Essential Commands
 
 ```bash
-# Service management
+# Rust API service management
 sudo systemctl start rusty-server
 sudo systemctl stop rusty-server
 sudo systemctl restart rusty-server
 sudo systemctl status rusty-server
 
+# ML Service management
+sudo systemctl start rusty-ml-service
+sudo systemctl stop rusty-ml-service
+sudo systemctl restart rusty-ml-service
+sudo systemctl status rusty-ml-service
+
 # View logs
 sudo journalctl -u rusty-server -f
+sudo journalctl -u rusty-ml-service -f
 
 # Test endpoints
-curl http://localhost:3000/health
+curl http://localhost:3000/health  # Rust API
+curl http://localhost:8001/health  # ML Service
 curl http://localhost:3000/api/v1/space-weather/current
+curl http://localhost:3000/api/v1/space-weather/predict
 
 # Database access
 mysql -u rusty_user -p rusty_server
 
 # Check processes
 ps aux | grep rusty-server
+ps aux | grep python3 | grep ml_service
 
 # Check ports
-sudo ss -tlnp | grep 3000
+sudo ss -tlnp | grep 3000  # Rust API
+sudo ss -tlnp | grep 8001  # ML Service
 ```
 
 ### File Locations
 
-- **Binary**: `/opt/rusty-server/target/release/rusty-server`
+- **Rust API Binary**: `/opt/rusty-server/target/release/rusty-server`
+- **ML Service**: `/opt/rusty-server/ml_service/`
 - **Config**: `/opt/rusty-server/config.toml`
 - **Logs**: `/var/log/journal/` (systemd) or `/opt/rusty-server/logs/`
-- **Service file**: `/etc/systemd/system/rusty-server.service`
+- **Service files**: 
+  - `/etc/systemd/system/rusty-server.service`
+  - `/etc/systemd/system/rusty-ml-service.service`
 - **Database**: MySQL `rusty_server` database
 
 ---
