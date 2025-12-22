@@ -4,10 +4,12 @@ use axum::{
     Json,
     middleware,
     response::Html,
+    http::Uri,
 };
 use serde_json::{json, Value};
 use std::time::SystemTime;
 use std::fs;
+use std::path::Path;
 
 use crate::AppState;
 use crate::config::Config;
@@ -70,8 +72,9 @@ pub fn create_router(state: AppState, config: Config) -> Router {
         // Health check endpoints (no rate limiting or auth)
         .route("/health", get(health_check))
         .route("/api/v1/health", get(health_check))
-        // Web page (no rate limiting or auth)
-        .route("/", get(serve_index))
+        // Web pages (no rate limiting or auth)
+        .route("/", get(serve_static_page))
+        .route("/exoplanets", get(serve_static_page))
         // Merge API routes with rate limiting and authentication
         .merge(api_routes)
         // Apply security middleware layers
@@ -101,12 +104,42 @@ async fn health_check() -> Json<Value> {
     }))
 }
 
-/// Serve the index HTML page
-async fn serve_index() -> Result<Html<String>, crate::AppError> {
-    let html_content = fs::read_to_string("static/index.html")
+/// Serve static HTML pages
+/// Maps routes to files in the static/ directory:
+/// - "/" -> static/index.html
+/// - "/exoplanets" -> static/exoplanets.html
+/// - "/filename.html" -> static/filename.html (automatic)
+async fn serve_static_page(uri: Uri) -> Result<Html<String>, crate::AppError> {
+    let path = uri.path();
+    
+    // Determine which file to serve based on the path
+    let file_path = match path {
+        "/" => "static/index.html".to_string(),
+        "/exoplanets" => "static/exoplanets.html".to_string(),
+        _ => {
+            // For unknown paths, try to serve as a file name
+            // Remove leading slash and check if file exists
+            let file_name = path.trim_start_matches('/');
+            let static_path = format!("static/{}", file_name);
+            
+            // Security: Only allow HTML files from static directory
+            if !file_name.ends_with(".html") {
+                return Err(crate::AppError::NotFound(format!("Page not found: {}", path)));
+            }
+            
+            // Check if file exists
+            if !Path::new(&static_path).exists() {
+                return Err(crate::AppError::NotFound(format!("Page not found: {}", path)));
+            }
+            
+            static_path
+        }
+    };
+    
+    let html_content = fs::read_to_string(&file_path)
         .map_err(|e| {
-            tracing::error!("Failed to read index.html: {}", e);
-            crate::AppError::Internal(format!("Failed to read index.html: {}", e))
+            tracing::error!("Failed to read {}: {}", file_path, e);
+            crate::AppError::Internal(format!("Failed to read page: {}", e))
         })?;
     
     Ok(Html(html_content))

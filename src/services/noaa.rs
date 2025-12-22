@@ -166,26 +166,41 @@ impl NoaaClient {
     /// Fetch solar wind data
     async fn fetch_solar_wind(&self) -> Result<Option<SolarWind>> {
         let mag_url = format!("{}/json/rtsw/rtsw_mag_1m.json", self.base_url);
+        let plasma_url = format!("{}/json/rtsw/rtsw_plasma_1m.json", self.base_url);
         
-        // Fetch magnetic field data (plasma endpoint doesn't exist, so we'll use what we have)
-        match self.fetch_with_retry(&mag_url).await {
-            Ok(mag_json) => {
-                // Parse with empty plasma data since that endpoint doesn't exist
-                if let Some(wind) = parse_solar_wind(&mag_json, &serde_json::Value::Null)? {
-                    if wind.speed == 0.0 {
-                        warn!("Solar wind speed/density/temperature not available from NOAA API");
-                    }
-                    info!("Fetched solar wind data: speed={} km/s, bz={:?}", wind.speed, wind.bz);
-                    Ok(Some(wind))
-                } else {
-                    warn!("No solar wind data available");
-                    Ok(None)
-                }
-            }
+        // Fetch both magnetic field data and plasma data in parallel
+        let (mag_result, plasma_result) = tokio::join!(
+            self.fetch_with_retry(&mag_url),
+            self.fetch_with_retry(&plasma_url)
+        );
+        
+        let mag_json = match mag_result {
+            Ok(json) => json,
             Err(e) => {
-                warn!("Failed to fetch solar wind: {}", e);
-                Ok(None)
+                warn!("Failed to fetch solar wind magnetic data: {}", e);
+                return Ok(None);
             }
+        };
+        
+        // Plasma data is optional - if it fails, we can still return Bz data
+        let plasma_json = match plasma_result {
+            Ok(json) => json,
+            Err(e) => {
+                warn!("Failed to fetch solar wind plasma data: {}, continuing with magnetic data only", e);
+                serde_json::Value::Null
+            }
+        };
+        
+        if let Some(wind) = parse_solar_wind(&mag_json, &plasma_json)? {
+            if wind.speed == 0.0 && wind.density == 0.0 && wind.temperature == 0.0 {
+                warn!("Solar wind speed/density/temperature not available from NOAA API (plasma data may be unavailable)");
+            }
+            info!("Fetched solar wind data: speed={} km/s, density={} cm^-3, temp={} K, bz={:?}", 
+                  wind.speed, wind.density, wind.temperature, wind.bz);
+            Ok(Some(wind))
+        } else {
+            warn!("No solar wind data available");
+            Ok(None)
         }
     }
 

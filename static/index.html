@@ -218,6 +218,29 @@
             padding: 40px;
             color: #78909c;
         }
+
+        .nav-links {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-links a {
+            color: #4fc3f7;
+            text-decoration: none;
+            margin-right: 20px;
+            padding: 8px 16px;
+            border: 1px solid rgba(79, 195, 247, 0.3);
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: inline-block;
+        }
+
+        .nav-links a:hover {
+            background: rgba(79, 195, 247, 0.1);
+            border-color: rgba(79, 195, 247, 0.5);
+            transform: translateY(-2px);
+        }
     </style>
 </head>
 <body>
@@ -229,6 +252,9 @@
                 <p>A Rust-based REST API service for fetching, caching, and serving space weather data critical for satellite operations. 
                 This service integrates with NOAA Space Weather Prediction Center, NASA DONKI, and NASA Exoplanet Archive to provide 
                 real-time and historical space weather information, solar flare data, and exoplanet discoveries.</p>
+            </div>
+            <div class="nav-links">
+                <a href="/exoplanets">🪐 Exoplanet Historical Data</a>
             </div>
         </header>
 

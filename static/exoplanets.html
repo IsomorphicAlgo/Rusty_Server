@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exoplanet Historical Data - Rusty Server</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #000000;
+            background-image: 
+                radial-gradient(2px 2px at 20px 30px, #eee, transparent),
+                radial-gradient(2px 2px at 60px 70px, rgba(255,255,255,0.8), transparent),
+                radial-gradient(1px 1px at 50px 50px, #fff, transparent),
+                radial-gradient(1px 1px at 20px 80px, rgba(255,255,255,0.6), transparent),
+                radial-gradient(2px 2px at 90px 40px, #eee, transparent),
+                radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.4), transparent),
+                radial-gradient(1px 1px at 160px 30px, #fff, transparent);
+            background-size: 200px 200px;
+            background-position: 0 0, 40px 60px, 130px 30px, 70px 100px, 30px 20px, 90px 70px, 120px 50px;
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: rgba(20, 20, 30, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            color: #4fc3f7;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
+        }
+
+        .subtitle {
+            color: #b0bec5;
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+
+        .nav-links {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-links a {
+            color: #4fc3f7;
+            text-decoration: none;
+            margin-right: 20px;
+            padding: 8px 16px;
+            border: 1px solid rgba(79, 195, 247, 0.3);
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: inline-block;
+        }
+
+        .nav-links a:hover {
+            background: rgba(79, 195, 247, 0.1);
+            border-color: rgba(79, 195, 247, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .controls {
+            background: rgba(20, 20, 30, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .controls input,
+        .controls select {
+            padding: 10px;
+            background: rgba(30, 30, 40, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 1em;
+        }
+
+        .controls input:focus,
+        .controls select:focus {
+            outline: none;
+            border-color: rgba(79, 195, 247, 0.5);
+        }
+
+        .controls label {
+            color: #b0bec5;
+            margin-right: 5px;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 30px;
+            font-size: 1em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .status.loading {
+            background: rgba(33, 150, 243, 0.2);
+            color: #64b5f6;
+            border: 1px solid rgba(33, 150, 243, 0.3);
+        }
+
+        .status.success {
+            background: rgba(76, 175, 80, 0.2);
+            color: #81c784;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .status.error {
+            background: rgba(244, 67, 54, 0.2);
+            color: #e57373;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+
+        .table-container {
+            background: rgba(20, 20, 30, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            overflow-x: auto;
+        }
+
+        .table-wrapper {
+            max-height: 70vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1200px;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            background: rgba(30, 30, 40, 0.95);
+            z-index: 10;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            color: #4fc3f7;
+            font-weight: 600;
+            border-bottom: 2px solid rgba(79, 195, 247, 0.3);
+            text-transform: uppercase;
+            font-size: 0.9em;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: #fff;
+        }
+
+        tbody tr {
+            transition: background 0.2s;
+        }
+
+        tbody tr:hover {
+            background: rgba(79, 195, 247, 0.1);
+        }
+
+        tbody tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #78909c;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .count-info {
+            color: #b0bec5;
+            margin-bottom: 15px;
+            font-size: 0.95em;
+        }
+
+        .null-value {
+            color: #78909c;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🪐 Exoplanet Historical Data</h1>
+            <div class="subtitle">
+                <p>Browse and search through the complete database of exoplanet discoveries from NASA's Exoplanet Archive.</p>
+            </div>
+            <div class="nav-links">
+                <a href="/">🏠 Home</a>
+            </div>
+        </header>
+
+        <div class="controls">
+            <div>
+                <label for="limit">Limit:</label>
+                <input type="number" id="limit" value="100" min="1" max="1000" style="width: 80px;">
+            </div>
+            <div>
+                <label for="discoveryMethod">Discovery Method:</label>
+                <select id="discoveryMethod">
+                    <option value="">All Methods</option>
+                    <option value="Transit">Transit</option>
+                    <option value="Radial Velocity">Radial Velocity</option>
+                    <option value="Microlensing">Microlensing</option>
+                    <option value="Imaging">Imaging</option>
+                    <option value="Astrometry">Astrometry</option>
+                </select>
+            </div>
+            <div>
+                <label for="minYear">Min Year:</label>
+                <input type="number" id="minYear" placeholder="1995" style="width: 100px;">
+            </div>
+            <div>
+                <label for="maxYear">Max Year:</label>
+                <input type="number" id="maxYear" placeholder="2024" style="width: 100px;">
+            </div>
+            <div>
+                <label for="sortBy">Sort By:</label>
+                <select id="sortBy">
+                    <option value="disc_year">Discovery Year</option>
+                    <option value="pl_name">Planet Name</option>
+                    <option value="hostname">Host Star</option>
+                    <option value="pl_rade">Radius</option>
+                    <option value="pl_bmasse">Mass</option>
+                </select>
+            </div>
+            <div>
+                <label for="sortOrder">Order:</label>
+                <select id="sortOrder">
+                    <option value="desc">Descending</option>
+                    <option value="asc">Ascending</option>
+                </select>
+            </div>
+            <button class="refresh-btn" id="loadBtn">Load Exoplanets</button>
+        </div>
+
+        <div id="status" class="status" style="display: none;"></div>
+
+        <div class="table-container">
+            <div class="count-info" id="countInfo" style="display: none;"></div>
+            <div class="table-wrapper">
+                <table id="exoplanetTable">
+                    <thead>
+                        <tr>
+                            <th>Planet Name</th>
+                            <th>Host Star</th>
+                            <th>Discovery Year</th>
+                            <th>Discovery Method</th>
+                            <th>Radius (Earth)</th>
+                            <th>Mass (Earth)</th>
+                            <th>Equilibrium Temp (K)</th>
+                            <th>Distance (pc)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr>
+                            <td colspan="8" class="empty-state">Click "Load Exoplanets" to fetch data</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            statusEl.style.display = 'block';
+        }
+
+        function hideStatus() {
+            document.getElementById('status').style.display = 'none';
+        }
+
+        function formatValue(value, decimals = 2) {
+            if (value === null || value === undefined) {
+                return '<span class="null-value">N/A</span>';
+            }
+            if (typeof value === 'number') {
+                return value.toFixed(decimals);
+            }
+            return value;
+        }
+
+        function buildQueryParams() {
+            const params = new URLSearchParams();
+            
+            const limit = document.getElementById('limit').value;
+            if (limit) params.append('limit', limit);
+            
+            const discoveryMethod = document.getElementById('discoveryMethod').value;
+            if (discoveryMethod) params.append('discovery_method', discoveryMethod);
+            
+            const minYear = document.getElementById('minYear').value;
+            if (minYear) params.append('min_year', minYear);
+            
+            const maxYear = document.getElementById('maxYear').value;
+            if (maxYear) params.append('max_year', maxYear);
+            
+            const sortBy = document.getElementById('sortBy').value;
+            if (sortBy) params.append('sort_by', sortBy);
+            
+            const sortOrder = document.getElementById('sortOrder').value;
+            if (sortOrder) params.append('sort_order', sortOrder);
+            
+            return params.toString();
+        }
+
+        async function loadExoplanets() {
+            const btn = document.getElementById('loadBtn');
+            const tableBody = document.getElementById('tableBody');
+            const countInfo = document.getElementById('countInfo');
+            
+            if (!btn || !tableBody) {
+                console.error('Required elements not found');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span>Loading...';
+            showStatus('Fetching exoplanet data...', 'loading');
+            tableBody.innerHTML = '<tr><td colspan="8" class="empty-state"><span class="loading-spinner"></span>Loading data...</td></tr>';
+            countInfo.style.display = 'none';
+
+            try {
+                const queryParams = buildQueryParams();
+                const url = `${API_BASE}/api/v1/exoplanets?${queryParams}`;
+                
+                console.log('Fetching exoplanets from:', url);
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.data || data.data.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="8" class="empty-state">No exoplanets found matching your criteria</td></tr>';
+                    countInfo.style.display = 'none';
+                    showStatus('No exoplanets found', 'error');
+                    return;
+                }
+
+                // Update count info
+                countInfo.textContent = `Showing ${data.data.length} of ${data.metadata.count} exoplanets`;
+                countInfo.style.display = 'block';
+
+                // Build table rows
+                let html = '';
+                data.data.forEach(exoplanet => {
+                    html += `
+                        <tr>
+                            <td>${formatValue(exoplanet.pl_name)}</td>
+                            <td>${formatValue(exoplanet.hostname)}</td>
+                            <td>${formatValue(exoplanet.disc_year)}</td>
+                            <td>${formatValue(exoplanet.discoverymethod)}</td>
+                            <td>${formatValue(exoplanet.pl_rade, 2)}</td>
+                            <td>${formatValue(exoplanet.pl_bmasse, 2)}</td>
+                            <td>${formatValue(exoplanet.pl_eqt, 0)}</td>
+                            <td>${formatValue(exoplanet.sy_dist, 2)}</td>
+                        </tr>
+                    `;
+                });
+                
+                tableBody.innerHTML = html;
+                hideStatus();
+                showStatus(`Successfully loaded ${data.data.length} exoplanets`, 'success');
+                setTimeout(hideStatus, 3000);
+                
+            } catch (error) {
+                console.error('Error loading exoplanets:', error);
+                tableBody.innerHTML = '<tr><td colspan="8" class="empty-state">Error loading data. Please try again.</td></tr>';
+                showStatus(`Error: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Load Exoplanets';
+            }
+        }
+
+        // Set up event listeners
+        window.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('loadBtn');
+            if (btn) {
+                btn.addEventListener('click', loadExoplanets);
+            }
+            
+            // Load data on page load
+            loadExoplanets();
+        });
+    </script>
+</body>
+</html>
+
