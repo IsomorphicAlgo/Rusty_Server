@@ -28,7 +28,7 @@ A Rust-based REST API service for fetching, caching, and serving space weather d
 - ✅ 10.2 (Exoplanet Archive Integration)
 - ✅ 10.3 (ML Model Integration - CPU-based)
 
-**Next Step**: Phase 9 (Deployment & Operations) or Priority B (Web UI)
+**Next Step**: Phase 9 (Deployment & Operations) ✅ **Web UI Complete**
 
 ### What's Been Completed
 
@@ -71,6 +71,13 @@ A Rust-based REST API service for fetching, caching, and serving space weather d
 - ✅ **XGBoost Model**: CPU-optimized model for solar flare prediction
 - ✅ **Prediction Endpoints**: API endpoints for solar flare predictions with accuracy tracking
 - ✅ **Model Training Pipeline**: Scripts for training models on historical data
+- ✅ **Web Dashboard**: Interactive web page displaying project summary and latest data (weather, solar, exoplanet)
+- ✅ **Data Refresh Endpoint**: API endpoint to force fresh data fetch and database storage
+- ✅ **Latest Exoplanet Endpoint**: API endpoint to retrieve the most recently synced exoplanet
+- ⏳ **CLI_Astro_Calc Server Integration**: Host CLI_Astro_Calc as server-based service (planned)
+- ⏳ **Surya Model Integration**: Host and integrate NASA/IBM Surya foundation model for advanced solar flare prediction (future)
+- ⏳ **Satellite Tracking**: TLE data integration and orbital mechanics calculations (future)
+- ⏳ **ML-Based Deorbit Prediction**: Machine learning algorithms for satellite re-entry prediction (future)
 
 **📋 See [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) for the complete development plan.**  
 **📚 See [OVERVIEW.md](OVERVIEW.md) for architecture and technical details.**  
@@ -82,26 +89,40 @@ A Rust-based REST API service for fetching, caching, and serving space weather d
 
 ## Introduction
 
-The purpose of this project is to explore creating a Rust-based REST API service to control and serve space weather data from a home server unit. This project is a continuation of the CLI_Astro_Calc Project.
+**Rusty Server** is a comprehensive astronomical data platform that serves as a centralized server infrastructure for space weather monitoring, exoplanet discovery tracking, and astronomical calculations. The project hosts multiple services and databases on a powerful home server, providing real-time data, historical archives, and predictive capabilities.
 
-Rusty_Server will host a REST API service for fetching, caching, and serving space weather data critical for satellite operations. This service will complement the CLI tool by providing real-time and historical space weather information.
+### Core Objectives
+
+1. **Host CLI_Astro_Calc**: Serve the CLI_Astro_Calc tool as a server-based service, making astronomical calculations accessible via API
+2. **Space Weather & Solar Flare Databases**: Maintain comprehensive databases for space weather data and solar flare events from NOAA and NASA DONKI
+3. **Exoplanet Discovery Database**: Track and store exoplanet data from NASA's Exoplanet Archive
+4. **Machine Learning Predictions**: Implement and host ML models for solar flare prediction, starting with CPU-optimized models and progressing to the Surya foundation model
+5. **Satellite Deorbit Prediction** (Future): Calculate satellite orbital decay and predict re-entry times using machine learning algorithms
+
+This project is a continuation of the CLI_Astro_Calc Project, expanding it into a full server-based platform.
 
 ## Use Cases
 
-- Satellite operators monitoring space weather conditions
-- Mission planning based on historical space weather patterns
-- Real-time alerts for solar flares and geomagnetic storms
-- Radiation level monitoring for space missions
+- **Satellite Operators**: Monitor space weather conditions and receive alerts for solar flares and geomagnetic storms
+- **Mission Planning**: Access historical space weather patterns for mission planning
+- **Astronomical Calculations**: Perform complex astronomical calculations via server-hosted CLI_Astro_Calc
+- **Exoplanet Research**: Query and analyze exoplanet discovery data
+- **Space Weather Prediction**: Access ML-powered solar flare predictions with confidence scores
+- **Satellite Tracking** (Future): Track satellite positions and predict orbital decay and re-entry times
 
 ## Features
 
 ### Planned Features
 
 - **Rust-Based REST API**: Modern async web service using axum
+- **CLI_Astro_Calc Server**: Host astronomical calculation tool as server-based service
 - **Data Fetching**: Integration with NOAA Space Weather API and NASA DONKI API
+- **Exoplanet Database**: Integration with NASA Exoplanet Archive via TAP protocol
 - **Local Caching**: Reduce API calls and improve response times
-- **REST Endpoints**: Clean API for querying current conditions and historical data
-- **Data Storage**: Historical data storage in MySQL
+- **REST Endpoints**: Clean API for querying current conditions, historical data, and exoplanets
+- **Data Storage**: Historical data storage in MySQL (space weather, solar flares, exoplanets)
+- **Machine Learning**: CPU-optimized solar flare prediction models (XGBoost), future Surya integration
+- **Satellite Tracking** (Future): TLE data integration, orbital mechanics calculations, ML-based deorbit prediction
 - **Production Features**: Rate limiting and authentication
 - **Deployment**: Self-hosted on personal server rack
 
@@ -133,6 +154,8 @@ Rusty_Server will host a REST API service for fetching, caching, and serving spa
 - ✅ Python ML microservice for solar flare prediction (CPU-optimized)
 - ✅ Solar flare prediction API with confidence scores
 - ✅ Prediction accuracy tracking and monitoring
+- ✅ Web dashboard with real-time data display
+- ✅ Interactive refresh button to fetch fresh data from APIs
 
 ## Technology Stack
 
@@ -307,7 +330,32 @@ cargo run
 
 # Test health endpoint (in another terminal)
 Invoke-WebRequest -Uri http://localhost:3000/health -UseBasicParsing
+
+# Open web dashboard in browser
+# Navigate to http://localhost:3000/
 ```
+
+## Web Dashboard
+
+The server includes a web dashboard accessible at the root path (`/`). The dashboard displays:
+
+- **Project Summary**: Overview of the Rusty Server project
+- **Space Weather Data**: Latest KP index, geomagnetic storms, solar wind, and radiation levels
+- **Solar Activity**: Recent solar flares, solar wind Bz component
+- **Exoplanet Data**: Most recently synced exoplanet information
+
+### Features
+
+- **Auto-refresh on load**: Data is automatically loaded when you open the page
+- **Manual refresh**: Click the "Refresh Data" button to fetch fresh data from APIs
+- **Database integration**: All refreshed data is automatically stored in the database
+- **Real-time updates**: Data timestamps show when each dataset was last updated
+
+### API Endpoints Used
+
+The web dashboard uses the following API endpoints:
+- `GET /api/v1/refresh` - Fetches fresh data from all APIs and stores in database
+- The refresh endpoint returns both space weather and exoplanet data in a single response
 
 ## Security Considerations
 
@@ -340,6 +388,35 @@ If I encounter linker errors (LNK1104), this is often caused by antivirus softwa
 1. Add `target/` folder to antivirus exclusions
 2. Restart my computer
 3. Run `cargo clean && cargo check`
+
+## Future Development Goals
+
+### Short-Term Goals
+
+- **CLI_Astro_Calc Server Integration**: Host the CLI_Astro_Calc tool as a server-based service, making astronomical calculations accessible via REST API
+- **Enhanced ML Predictions**: Improve solar flare prediction accuracy with additional training data and model tuning
+- **Exoplanet Discovery Notifications**: Implement automatic notifications for newly discovered exoplanets
+
+### Long-Term Goals
+
+- **Surya Foundation Model Integration**: Host and integrate the NASA/IBM Surya foundation model (366-million-parameter transformer) for advanced solar flare prediction. This will require GPU hardware for optimal performance.
+- **Satellite Tracking System**: 
+  - Integrate Two-Line Element (TLE) data from Space-Track or CelesTrak
+  - Implement orbital mechanics calculations (SGP4) for satellite position tracking
+  - Calculate orbital decay rates based on atmospheric drag and solar activity
+- **ML-Based Deorbit Prediction**: 
+  - Develop machine learning algorithms to predict satellite re-entry times
+  - Use physics-guided neural networks trained on historical TLE data
+  - Account for solar activity effects on atmospheric density
+  - Provide uncertainty estimates for predictions
+- **Mars Weather Forecasting**: Expand platform to include Mars weather data and forecasting models
+
+### Technical Roadmap
+
+See [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) for detailed implementation plans, including:
+- Phase 11: Satellite Tracking & Orbital Decay
+- Phase 12: Mars Weather Forecasting
+- Surya ML Integration details in `Guides/SURYA_ML_INTEGRATION_PLAN.md`
 
 ## Contributing
 

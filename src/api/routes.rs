@@ -3,9 +3,11 @@ use axum::{
     Router,
     Json,
     middleware,
+    response::Html,
 };
 use serde_json::{json, Value};
 use std::time::SystemTime;
+use std::fs;
 
 use crate::AppState;
 use crate::config::Config;
@@ -35,6 +37,9 @@ pub fn create_router(state: AppState, config: Config) -> Router {
         // Exoplanet endpoints
         .route("/api/v1/exoplanets", get(handlers::get_exoplanets))
         .route("/api/v1/exoplanets/:name", get(handlers::get_exoplanet_by_name))
+        .route("/api/v1/exoplanets/latest", get(handlers::get_latest_exoplanet))
+        // Refresh endpoint
+        .route("/api/v1/refresh", get(handlers::refresh_data))
         // ML Prediction endpoints
         .route("/api/v1/predictions/solar-flare", get(handlers::predict_solar_flare))
         .route("/api/v1/predictions/history", get(handlers::get_prediction_history))
@@ -65,6 +70,8 @@ pub fn create_router(state: AppState, config: Config) -> Router {
         // Health check endpoints (no rate limiting or auth)
         .route("/health", get(health_check))
         .route("/api/v1/health", get(health_check))
+        // Web page (no rate limiting or auth)
+        .route("/", get(serve_index))
         // Merge API routes with rate limiting and authentication
         .merge(api_routes)
         // Apply security middleware layers
@@ -92,5 +99,16 @@ async fn health_check() -> Json<Value> {
         "service": "rusty-server",
         "version": env!("CARGO_PKG_VERSION")
     }))
+}
+
+/// Serve the index HTML page
+async fn serve_index() -> Result<Html<String>, crate::AppError> {
+    let html_content = fs::read_to_string("static/index.html")
+        .map_err(|e| {
+            tracing::error!("Failed to read index.html: {}", e);
+            crate::AppError::Internal(format!("Failed to read index.html: {}", e))
+        })?;
+    
+    Ok(Html(html_content))
 }
 

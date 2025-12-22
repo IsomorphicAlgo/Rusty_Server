@@ -2,7 +2,18 @@
 
 ## Overview
 
-This development plan incorporates all planning information for Rusty_Server, a Rust-based REST API service for fetching, caching, and serving space weather data. The plan maintains an iterative development approach while expanding into a comprehensive astronomical and space weather monitoring platform with satellite tracking, Mars weather forecasting, and advanced machine learning integration.
+This development plan incorporates all planning information for Rusty_Server, a comprehensive astronomical data platform that serves as a centralized server infrastructure. The project hosts multiple services and databases:
+
+**Core Services:**
+- **CLI_Astro_Calc Server**: Hosts the CLI_Astro_Calc tool as a server-based service
+- **Space Weather & Solar Flare Databases**: Comprehensive databases for space weather data and solar flare events
+- **Exoplanet Discovery Database**: Tracks and stores exoplanet data from NASA's Exoplanet Archive
+
+**Advanced Capabilities:**
+- **Machine Learning Predictions**: Solar flare prediction using CPU-optimized models (XGBoost) with future integration of the Surya foundation model (NASA/IBM collaboration)
+- **Satellite Tracking & Deorbit Prediction**: Calculate satellite orbital decay and predict re-entry times using machine learning algorithms
+
+The plan maintains an iterative development approach while expanding into a comprehensive astronomical and space weather monitoring platform with satellite tracking, Mars weather forecasting, and advanced machine learning integration.
 
 ---
 
@@ -10,8 +21,17 @@ This development plan incorporates all planning information for Rusty_Server, a 
 
 ### Project Goals
 
-- Build a production-ready REST API service for space weather data
-- Integrate with NOAA Space Weather API and NASA DONKI
+**Primary Objectives:**
+- **Host CLI_Astro_Calc**: Serve the CLI_Astro_Calc tool as a server-based service, making astronomical calculations accessible via REST API
+- **Space Weather & Solar Flare Databases**: Maintain comprehensive databases for space weather data and solar flare events from NOAA and NASA DONKI
+- **Exoplanet Discovery Database**: Track and store exoplanet data from NASA's Exoplanet Archive
+
+**Advanced ML & Prediction Goals:**
+- **Solar Flare Prediction**: Implement and host ML models for solar flare prediction, starting with CPU-optimized models (XGBoost) and progressing to the **Surya foundation model** (NASA/IBM collaboration)
+- **Satellite Deorbit Prediction**: Calculate satellite orbital decay and predict re-entry times using machine learning algorithms
+
+**Infrastructure Goals:**
+- Build a production-ready REST API service for astronomical data
 - Provide local caching and historical data storage
 - Implement security features (rate limiting, authentication)
 - Deploy on personal server rack hardware
@@ -150,18 +170,19 @@ Based on project goals and requirements, the following priorities have been esta
 - ✅ Complete space weather data coverage achieved
 
 ### Priority B: Web UI Development
-**Status**: Not Started
-- Create simple web page to interact with data
-- Display solar data within a week
-- Add query section for date ranges and data types
-- Connect to existing REST API endpoints
+**Status**: ✅ Complete
+- ✅ Created simple web page to interact with data
+- ✅ Display solar data and space weather information
+- ✅ Interactive refresh functionality
+- ✅ Real-time data display from APIs
 
 ### Priority C: ML Integration
-**Status**: Waiting for Priority A completion
-- Set up Python microservice for ML training/inference
-- Create data pipeline from database → ML service
-- Implement simple prediction model
-- Store predictions in database
+**Status**: ✅ Complete (CPU-based implementation)
+- ✅ Set up Python microservice for ML training/inference
+- ✅ Created data pipeline from database → ML service
+- ✅ Implemented XGBoost prediction model (CPU-optimized)
+- ✅ Store predictions in database
+- ⏳ **Future**: Integrate Surya foundation model when GPU hardware available
 
 ### Priority D: Predictions Display
 **Status**: Blocked by Priorities B and C
@@ -169,7 +190,29 @@ Based on project goals and requirements, the following priorities have been esta
 - Add comparison visualizations
 - Display accuracy metrics
 
-### Priority E: Mars Project
+### Priority E: CLI_Astro_Calc Server Integration
+**Status**: Planned
+- Host CLI_Astro_Calc tool as server-based service
+- Provide astronomical calculations via REST API
+- Enable remote access to calculation capabilities
+- Integrate with existing Rusty Server infrastructure
+
+### Priority F: Satellite Tracking & Deorbit Prediction
+**Status**: Future
+- Integrate TLE (Two-Line Element) data sources
+- Implement orbital mechanics calculations (SGP4)
+- Calculate orbital decay rates
+- Develop ML-based deorbit prediction algorithms
+- Predict satellite re-entry times with uncertainty estimates
+
+### Priority G: Surya Foundation Model Integration
+**Status**: Future (requires GPU hardware)
+- Host and integrate NASA/IBM Surya foundation model
+- 366-million-parameter transformer for solar flare prediction
+- GPU-accelerated inference (RTX 2070 available)
+- Advanced prediction capabilities with 2-hour lead time
+
+### Priority H: Mars Project
 **Status**: Future
 - Similar structure to solar weather project
 - Mars weather data integration
@@ -639,11 +682,11 @@ Based on project goals and requirements, the following priorities have been esta
    - ✅ Integrated into current conditions endpoint
    - See `DONKI_IMPLEMENTATION_ANALYSIS.md` for details
 
-2. **Priority B: Web UI Development** - **NEXT**
-   - Simple HTML/JavaScript frontend
-   - Display last 7 days of data
-   - Query interface
-   - Connect to existing REST API endpoints
+2. ✅ **Priority B: Web UI Development** - **COMPLETE**
+   - ✅ Simple HTML/JavaScript frontend
+   - ✅ Real-time data display
+   - ✅ Interactive refresh functionality
+   - ✅ Connected to existing REST API endpoints
 
 3. ✅ **Phase 8: Testing & Quality Assurance** - **COMPLETE**
    - ✅ Comprehensive test coverage (70+ tests)
@@ -651,7 +694,13 @@ Based on project goals and requirements, the following priorities have been esta
    - ✅ Security tests
    - ✅ API documentation
 
-4. **Phase 9: Deployment & Operations** - **READY TO START**
+4. **Priority E: CLI_Astro_Calc Server Integration** - **NEXT**
+   - Host CLI_Astro_Calc tool as server-based service
+   - Provide astronomical calculations via REST API
+   - Enable remote access to calculation capabilities
+   - See `Guides/CLI_INTEGRATION_PLAN.md` for details
+
+5. **Phase 9: Deployment & Operations** - **READY TO START**
    - Production deployment preparation
    - Monitoring and observability
    - Database configuration (currently using test database)
@@ -663,19 +712,30 @@ Based on project goals and requirements, the following priorities have been esta
    - ✅ Data pipeline implementation
    - ✅ Training pipeline with historical data collection
 
-6. **Priority D: Predictions Display**
-   - Web UI enhancements
-   - Comparison visualizations
+6. ✅ **Priority D: Predictions Display** - **COMPLETE**
+   - ✅ Web UI with data display
+   - ⏳ Comparison visualizations (future enhancement)
 
 7. ✅ **Phase 10.2: Exoplanet Archive Integration** - **COMPLETE**
 8. ✅ **Phase 10.3: ML Model Integration (CPU-Based)** - **COMPLETE**
-9. **Phase 11.1-11.2: Satellite Tracking** (TLE + calculations)
-10. **Phase 12.1: Mars Weather Data Integration**
+9. **Phase 11.1-11.2: Satellite Tracking** (TLE + calculations) - **Priority F**
+10. **Phase 12.1: Mars Weather Data Integration** - **Priority H**
 
-### Lower Priority (Advanced ML)
-11. **Phase 11.3: ML-Based Decay Prediction**
-12. **Phase 12.2-12.3: Mars Weather Forecasting**
-13. **GPU-Accelerated Models** (when hardware available)
+### High Priority (Advanced ML & Predictions)
+11. **Priority G: Surya Foundation Model Integration** - **Future (requires GPU)**
+    - Host and integrate NASA/IBM Surya foundation model
+    - GPU-accelerated inference (RTX 2070 available)
+    - Advanced solar flare prediction with 2-hour lead time
+    - See `Guides/SURYA_ML_INTEGRATION_PLAN.md` for details
+
+12. **Priority F: Satellite Tracking & ML-Based Decay Prediction** - **Future**
+    - Phase 11.1-11.2: TLE data integration and orbital mechanics
+    - Phase 11.3: ML-based decay prediction algorithms
+    - Physics-guided neural networks for re-entry prediction
+
+### Lower Priority (Future Enhancements)
+13. **Phase 12.2-12.3: Mars Weather Forecasting**
+14. **Additional Integrations** (Phase 13)
 
 ### Future Enhancements
 13. **Phase 13: Additional Integrations**
@@ -725,12 +785,18 @@ Based on project goals and requirements, the following priorities have been esta
 
 ### Priorities
 **Q**: Which features are most important for my use case?
-**A**: The first thing I want to prioritize is:
-- A. Acquiring solar flare data and other space weather data.
-- B. Creating a simple web page to interact with this data. I want to see solar data within a week and have a section to make queries.
-- C. Creating the ML to start predictions
-- D. Displaying predictions vs Actual on the web page
-- E. Commencing on the Mars project, similar structure.
+**A**: The project goals are:
+- **Primary**: Host CLI_Astro_Calc as a server-based service
+- **Primary**: Maintain databases for exoplanet discovery, space weather, and solar flare data
+- **Advanced ML**: Host Surya libraries and create machine learning algorithms to predict solar flares
+- **Future**: Calculate satellite deorbit and possibly predict with machine learning algorithms
+- **Future**: Mars weather project, similar structure
+
+**Completed Priorities:**
+- ✅ A. Acquiring solar flare data and other space weather data - **COMPLETE**
+- ✅ B. Creating a simple web page to interact with this data - **COMPLETE**
+- ✅ C. Creating the ML to start predictions (CPU-based XGBoost) - **COMPLETE**
+- ✅ D. Displaying predictions and data on the web page - **COMPLETE**
 
 ### Timeline
 **Q**: What's the target timeline for these features?
@@ -744,23 +810,29 @@ Based on project goals and requirements, the following priorities have been esta
 1. ✅ **DONKI Account Setup** - NASA API key registration complete
 2. ✅ **Implement DONKI Integration** - Priority A (solar flare data) - **COMPLETE**
 3. ✅ **Exoplanet Archive Integration** - Phase 10.2 - **COMPLETE**
-4. ⏳ **Build Web UI** - Priority B (simple HTML/JS frontend) - **NEXT**
-5. ⏳ **Set Up ML Infrastructure** - Priority C (after data complete)
+4. ✅ **Build Web UI** - Priority B (simple HTML/JS frontend) - **COMPLETE**
+5. ✅ **Set Up ML Infrastructure** - Priority C (CPU-based XGBoost) - **COMPLETE**
+6. ⏳ **CLI_Astro_Calc Server Integration** - Priority E - **NEXT**
+7. ⏳ **Phase 9: Deployment & Operations** - **READY TO START**
 
 ### Short-term Goals (1-3 months)
 - ✅ Complete Priority A (solar flare data acquisition) - **COMPLETE**
-- ⏳ Complete Priority B (web UI) - **IN PROGRESS**
-- ✅ Begin Priority C (ML integration) - **COMPLETE** (CPU-based XGBoost model implemented)
+- ✅ Complete Priority B (web UI) - **COMPLETE**
+- ✅ Complete Priority C (ML integration - CPU-based) - **COMPLETE**
 - ✅ Complete Phase 8 (testing) - **COMPLETE**
+- ⏳ Complete Priority E (CLI_Astro_Calc server integration) - **NEXT**
 - ⏳ Complete Phase 9 (deployment) - **READY TO START**
 
 ### Long-term Vision
-- Comprehensive space weather monitoring platform
-- ML-powered predictions for solar flares and space weather
-- Mars weather forecasting system
-- Satellite tracking and orbital decay prediction
-- Real-time discovery pipeline
-- Full astronomical monitoring platform
+- **Host CLI_Astro_Calc**: Server-based astronomical calculation service
+- **Comprehensive Databases**: Space weather, solar flares, and exoplanet discovery data
+- **Advanced ML Predictions**: 
+  - Surya foundation model integration for solar flare prediction
+  - ML-based satellite deorbit prediction algorithms
+- **Satellite Tracking**: TLE data integration, orbital mechanics, and decay calculations
+- **Mars Weather Forecasting**: Mars weather data and prediction models
+- **Real-time Discovery Pipeline**: Automated processing of new astronomical discoveries
+- **Full Astronomical Monitoring Platform**: Comprehensive platform for space weather, exoplanets, and satellite tracking
 
 ---
 
@@ -779,7 +851,7 @@ Based on project goals and requirements, the following priorities have been esta
 
 **Last Updated**: 2024-12-20
 **Status**: Active Development
-**Current Phase**: Phase 10.3 Complete, Ready for Phase 9 (Deployment) or Priority B (Web UI)
+**Current Phase**: Phase 10.3 Complete, Ready for Priority E (CLI_Astro_Calc Integration) or Phase 9 (Deployment)
 
 **Recent Completions**:
 - ✅ Phase 10.3: ML Model Integration (CPU-Based) - XGBoost model, Python microservice, prediction endpoints

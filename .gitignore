@@ -29,6 +29,7 @@ secrets/
 *.pem
 
 # Configuration files with secrets
+config.toml
 config/local.toml
 config/production.toml
 config/secrets.toml

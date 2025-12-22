@@ -124,13 +124,19 @@ impl ExoplanetClient {
 
     /// Build ADQL query from query parameters
     fn build_adql_query(&self, params: &ExoplanetQueryParams) -> String {
-        let mut query = String::from(
-            "SELECT pl_name, hostname, discoverymethod, disc_year, disc_facility, disc_telescope, \
+        let limit = params.limit.unwrap_or(100);
+        let offset = params.offset.unwrap_or(0);
+        
+        // Build query with TOP (ADQL standard syntax)
+        // TOP must come immediately after SELECT
+        let mut query = format!(
+            "SELECT TOP {} pl_name, hostname, discoverymethod, disc_year, disc_facility, disc_telescope, \
              pl_orbper, pl_orbpererr1, pl_orbpererr2, pl_orbperlim, \
              pl_rade, pl_radeerr1, pl_radeerr2, \
              pl_bmasse, pl_bmasseerr1, pl_bmasseerr2, \
              pl_eqt, st_teff, st_rad, st_mass, sy_dist, sy_pnum, rowupdate, releasedate \
-             FROM ps WHERE 1=1"
+             FROM ps WHERE 1=1",
+            limit
         );
 
         // Add filters
@@ -170,12 +176,13 @@ impl ExoplanetClient {
         let sort_field = params.sort_by.as_deref().unwrap_or("pl_name");
         let sort_order = params.sort_order.as_deref().unwrap_or("asc");
         query.push_str(&format!(" ORDER BY {} {}", sort_field, sort_order.to_uppercase()));
-
-        // Add limit and offset
-        let limit = params.limit.unwrap_or(100);
-        let offset = params.offset.unwrap_or(0);
-        query.push_str(&format!(" LIMIT {} OFFSET {}", limit, offset));
-
+        
+        // Note: OFFSET is not well supported in ADQL, so we'll handle pagination
+        // by adjusting the query in the calling code if needed
+        if offset > 0 {
+            warn!("OFFSET {} requested but ADQL doesn't support it well - using TOP only", offset);
+        }
+        
         query
     }
 
@@ -191,7 +198,22 @@ impl ExoplanetClient {
             match self.client.get(url).send().await {
                 Ok(response) => {
                     if response.status().is_success() {
-                        let json: serde_json::Value = response.json().await?;
+                        // Get response as text first to handle trailing commas
+                        let text = response.text().await?;
+                        
+                        // Clean up trailing commas (common issue with TAP services)
+                        let cleaned_text = text.trim_end()
+                            .trim_end_matches(',')
+                            .trim_end();
+                        
+                        // Parse as JSON
+                        let json: serde_json::Value = serde_json::from_str(&cleaned_text)
+                            .map_err(|e| {
+                                error!("Failed to parse TAP JSON response: {}", e);
+                                error!("Response preview (first 500 chars): {}", 
+                                    cleaned_text.chars().take(500).collect::<String>());
+                                crate::AppError::Internal(format!("Failed to parse TAP response: {}", e))
+                            })?;
                         return Ok(json);
                     } else {
                         let status = response.status();

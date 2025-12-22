@@ -5,7 +5,7 @@ use axum::{
 use chrono::{Utc, Duration as ChronoDuration, DateTime};
 use crate::models::*;
 use crate::AppState;
-use crate::database::{DatabaseOperations, PredictionRow};
+use crate::database::DatabaseOperations;
 use crate::Result;
 use serde_json;
 
@@ -976,6 +976,167 @@ pub async fn get_prediction_accuracy(
         }
         Err(e) => {
             tracing::warn!("Failed to get prediction accuracy: {}", e);
+            Err(e)
+        }
+    }
+}
+
+/// Refresh data from APIs and store in database
+/// 
+/// This endpoint forces a fresh fetch from all APIs (bypassing cache),
+/// stores the data in the database, and returns the latest data.
+/// 
+/// # Response
+/// Returns a JSON object with:
+/// - `space_weather`: Latest space weather data
+/// - `exoplanet`: Latest exoplanet data
+/// 
+/// # Example
+/// ```bash
+/// GET /api/v1/refresh
+/// ```
+pub async fn refresh_data(
+    State(state): State<AppState>,
+) -> Result<Json<serde_json::Value>> {
+    tracing::info!("Refresh endpoint called - fetching fresh data from APIs");
+
+    // Invalidate cache to force fresh fetch
+    state.cache.invalidate_current_conditions().await;
+    
+    // Fetch fresh space weather data (this will store in database automatically)
+    let space_weather = match state.noaa_client.get_current_conditions(Some(&state.donki_client)).await {
+        Ok(mut response) => {
+            // Store in database
+            let db_ops = DatabaseOperations::new(state.db_pool.pool().clone());
+            match db_ops.store_observation(&response.data, &response.metadata).await {
+                Ok(id) => {
+                    tracing::debug!("Stored fresh observation in database with id: {}", id);
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to store observation in database: {}", e);
+                }
+            }
+            
+            // Update cache
+            state.cache.set_current_conditions(response.clone()).await;
+            response.metadata.cached = false;
+            serde_json::to_value(response).unwrap_or(serde_json::json!({}))
+        }
+        Err(e) => {
+            tracing::warn!("Failed to fetch fresh space weather data: {}", e);
+            // Try to get latest from database
+            let db_ops = DatabaseOperations::new(state.db_pool.pool().clone());
+            match db_ops.get_latest_observation().await {
+                Ok(Some(obs)) => serde_json::to_value(obs).unwrap_or(serde_json::json!({})),
+                _ => serde_json::json!({})
+            }
+        }
+    };
+
+    // Fetch fresh exoplanet data
+    let db_ops = DatabaseOperations::new(state.db_pool.pool().clone());
+    let exoplanet = match db_ops.get_latest_exoplanet().await {
+        Ok(Some(exo)) => {
+            // Return the latest from database
+            crate::models::ExoplanetResponse {
+                data: vec![exo],
+                metadata: crate::models::ExoplanetMetadata {
+                    count: 1,
+                    timestamp: Utc::now(),
+                    source: "database".to_string(),
+                },
+            }
+        }
+        _ => {
+            // If no exoplanet in database, fetch from TAP service
+            let params = crate::models::ExoplanetQueryParams {
+                limit: Some(1),
+                sort_by: Some("disc_year".to_string()),
+                sort_order: Some("desc".to_string()),
+                ..Default::default()
+            };
+            
+            match state.exoplanet_client.query_exoplanets(&params).await {
+                Ok(mut exoplanets) => {
+                    if let Some(exo) = exoplanets.pop() {
+                        // Store in database
+                        let db_ops_clone = DatabaseOperations::new(state.db_pool.pool().clone());
+                        if let Err(e) = db_ops_clone.store_exoplanet(&exo).await {
+                            tracing::warn!("Failed to store exoplanet: {}", e);
+                        }
+                        
+                        crate::models::ExoplanetResponse {
+                            data: vec![exo],
+                            metadata: crate::models::ExoplanetMetadata {
+                                count: 1,
+                                timestamp: Utc::now(),
+                                source: "tap".to_string(),
+                            },
+                        }
+                    } else {
+                        crate::models::ExoplanetResponse {
+                            data: vec![],
+                            metadata: crate::models::ExoplanetMetadata {
+                                count: 0,
+                                timestamp: Utc::now(),
+                                source: "tap".to_string(),
+                            },
+                        }
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to fetch exoplanet data: {}", e);
+                    crate::models::ExoplanetResponse {
+                        data: vec![],
+                        metadata: crate::models::ExoplanetMetadata {
+                            count: 0,
+                            timestamp: Utc::now(),
+                            source: "error".to_string(),
+                        },
+                    }
+                }
+            }
+        }
+    };
+
+    Ok(Json(serde_json::json!({
+        "space_weather": space_weather,
+        "exoplanet": exoplanet
+    })))
+}
+
+/// Get the latest exoplanet from database
+/// 
+/// Returns the most recently synced exoplanet.
+/// 
+/// # Response
+/// Returns `ExoplanetResponse` with the latest exoplanet.
+/// 
+/// # Example
+/// ```bash
+/// GET /api/v1/exoplanets/latest
+/// ```
+pub async fn get_latest_exoplanet(
+    State(state): State<AppState>,
+) -> Result<Json<crate::models::ExoplanetResponse>> {
+    let db_ops = DatabaseOperations::new(state.db_pool.pool().clone());
+    
+    match db_ops.get_latest_exoplanet().await {
+        Ok(Some(exoplanet)) => {
+            Ok(Json(crate::models::ExoplanetResponse {
+                data: vec![exoplanet],
+                metadata: crate::models::ExoplanetMetadata {
+                    count: 1,
+                    timestamp: Utc::now(),
+                    source: "database".to_string(),
+                },
+            }))
+        }
+        Ok(None) => {
+            Err(crate::AppError::NotFound("No exoplanet data found in database".to_string()))
+        }
+        Err(e) => {
+            tracing::warn!("Failed to get latest exoplanet: {}", e);
             Err(e)
         }
     }

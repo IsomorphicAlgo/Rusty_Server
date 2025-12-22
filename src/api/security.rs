@@ -134,8 +134,10 @@ pub async fn security_headers_middleware(
     // Content-Security-Policy (basic)
     // Note: CSP is complex and should be customized per application
     // This is a basic restrictive policy
+    // Note: 'unsafe-inline' is allowed for scripts to support inline JavaScript in the web dashboard
+    // For production, consider moving scripts to external files and using nonces
     let header_value = HeaderValue::from_static(
-        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';"
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
     );
     headers.insert("content-security-policy", header_value);
 

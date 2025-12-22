@@ -8,6 +8,7 @@ license = "MIT"
 repository = "https://github.com/YOUR_USERNAME/Rusty_Server"
 keywords = ["space-weather", "api", "rust", "noaa", "satellite"]
 categories = ["web-programming", "science"]
+default-run = "rusty-server"
 
 [dependencies]
 # Web framework
@@ -58,6 +59,10 @@ moka = { version = "0.12", features = ["future"] }
 [[bin]]
 name = "collect_training_data"
 path = "scripts/collect_training_data.rs"
+
+[[bin]]
+name = "populate_databases"
+path = "scripts/populate_databases.rs"
 
 [dev-dependencies]
 tokio-test = "0.4"

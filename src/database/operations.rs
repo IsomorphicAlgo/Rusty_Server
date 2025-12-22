@@ -683,6 +683,26 @@ impl DatabaseOperations {
         Ok(row.map(|r| r.into()))
     }
 
+    /// Get the most recently synced exoplanet
+    pub async fn get_latest_exoplanet(&self) -> Result<Option<crate::models::Exoplanet>> {
+        let row = sqlx::query_as::<_, ExoplanetRow>(
+            "SELECT pl_name, hostname, discoverymethod, disc_year, disc_facility, disc_telescope, \
+             pl_orbper, pl_orbpererr1, pl_orbpererr2, pl_orbperlim, \
+             pl_rade, pl_radeerr1, pl_radeerr2, \
+             pl_bmasse, pl_bmasseerr1, pl_bmasseerr2, \
+             pl_eqt, st_teff, st_rad, st_mass, sy_dist, sy_pnum, rowupdate, releasedate \
+             FROM exoplanets ORDER BY last_synced_at DESC, disc_year DESC LIMIT 1"
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| {
+            warn!("Failed to get latest exoplanet: {}", e);
+            crate::AppError::Database(e)
+        })?;
+
+        Ok(row.map(|r| r.into()))
+    }
+
     /// Store discovery notification
     pub async fn store_discovery_notification(
         &self,

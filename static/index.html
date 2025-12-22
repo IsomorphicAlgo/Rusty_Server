@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rusty Server - Space Weather & Exoplanet Data</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #000000;
+            background-image: 
+                radial-gradient(2px 2px at 20px 30px, #eee, transparent),
+                radial-gradient(2px 2px at 60px 70px, rgba(255,255,255,0.8), transparent),
+                radial-gradient(1px 1px at 50px 50px, #fff, transparent),
+                radial-gradient(1px 1px at 20px 80px, rgba(255,255,255,0.6), transparent),
+                radial-gradient(2px 2px at 90px 40px, #eee, transparent),
+                radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.4), transparent),
+                radial-gradient(1px 1px at 160px 30px, #fff, transparent);
+            background-size: 200px 200px;
+            background-position: 0 0, 40px 60px, 130px 30px, 70px 100px, 30px 20px, 90px 70px, 120px 50px;
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: rgba(20, 20, 30, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            color: #4fc3f7;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
+        }
+
+        .subtitle {
+            color: #b0bec5;
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+
+        .refresh-section {
+            background: rgba(20, 20, 30, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .refresh-btn:active {
+            transform: translateY(0);
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .status.loading {
+            background: rgba(33, 150, 243, 0.2);
+            color: #64b5f6;
+            border: 1px solid rgba(33, 150, 243, 0.3);
+        }
+
+        .status.success {
+            background: rgba(76, 175, 80, 0.2);
+            color: #81c784;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .status.error {
+            background: rgba(244, 67, 54, 0.2);
+            color: #e57373;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .data-card {
+            background: rgba(20, 20, 30, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+        }
+
+        .data-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(79, 195, 247, 0.3);
+            border-color: rgba(79, 195, 247, 0.3);
+        }
+
+        .card-title {
+            font-size: 1.5em;
+            color: #4fc3f7;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            text-shadow: 0 0 10px rgba(79, 195, 247, 0.3);
+        }
+
+        .data-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(30, 30, 40, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+        }
+
+        .data-label {
+            font-weight: 600;
+            color: #b0bec5;
+            margin-bottom: 5px;
+        }
+
+        .data-value {
+            color: #fff;
+            font-size: 1.1em;
+        }
+
+        .data-value.none {
+            color: #78909c;
+            font-style: italic;
+        }
+
+        .timestamp {
+            color: #90a4ae;
+            font-size: 0.9em;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #78909c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 Rusty Server</h1>
+            <div class="subtitle">
+                <p><strong>Space Weather & Exoplanet Data Dashboard</strong></p>
+                <p>A Rust-based REST API service for fetching, caching, and serving space weather data critical for satellite operations. 
+                This service integrates with NOAA Space Weather Prediction Center, NASA DONKI, and NASA Exoplanet Archive to provide 
+                real-time and historical space weather information, solar flare data, and exoplanet discoveries.</p>
+            </div>
+        </header>
+
+        <div class="refresh-section">
+            <button class="refresh-btn" id="refreshBtn">
+                🔄 Refresh Data
+            </button>
+            <div id="status" class="status" style="display: none;"></div>
+        </div>
+
+        <div class="data-grid">
+            <div class="data-card">
+                <h2 class="card-title">🌍 Space Weather</h2>
+                <div id="weatherData" class="empty-state">Click "Refresh Data" to load weather information</div>
+            </div>
+
+            <div class="data-card">
+                <h2 class="card-title">☀️ Solar Activity</h2>
+                <div id="solarData" class="empty-state">Click "Refresh Data" to load solar information</div>
+            </div>
+
+            <div class="data-card">
+                <h2 class="card-title">🪐 Exoplanet Data</h2>
+                <div id="exoplanetData" class="empty-state">Click "Refresh Data" to load exoplanet information</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            statusEl.style.display = 'block';
+        }
+
+        function hideStatus() {
+            document.getElementById('status').style.display = 'none';
+        }
+
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return 'N/A';
+            const date = new Date(timestamp);
+            return date.toLocaleString();
+        }
+
+        function formatValue(value, unit = '') {
+            if (value === null || value === undefined) return '<span class="data-value none">Not available</span>';
+            return `<span class="data-value">${value}${unit ? ' ' + unit : ''}</span>`;
+        }
+
+        async function refreshData() {
+            const btn = document.getElementById('refreshBtn');
+            if (!btn) {
+                console.error('Refresh button not found');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span>Refreshing...';
+            showStatus('Fetching fresh data from APIs and updating database...', 'loading');
+
+            try {
+                console.log('Calling refresh endpoint:', `${API_BASE}/api/v1/refresh`);
+                // Call refresh endpoint which fetches fresh data and stores it
+                const refreshResponse = await fetch(`${API_BASE}/api/v1/refresh`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                    }
+                });
+                
+                console.log('Response status:', refreshResponse.status);
+                
+                if (!refreshResponse.ok) {
+                    const errorText = await refreshResponse.text();
+                    console.error('Error response:', errorText);
+                    throw new Error(`Refresh failed: ${refreshResponse.status} ${refreshResponse.statusText}`);
+                }
+                
+                const refreshData = await refreshResponse.json();
+                console.log('Refresh data received:', refreshData);
+
+                // Display weather and solar data
+                if (refreshData.space_weather) {
+                    displayWeatherData(refreshData.space_weather);
+                    displaySolarData(refreshData.space_weather);
+                } else {
+                    console.warn('No space_weather data in response');
+                }
+                
+                if (refreshData.exoplanet) {
+                    displayExoplanetData(refreshData.exoplanet);
+                } else {
+                    console.warn('No exoplanet data in response');
+                }
+
+                showStatus('Data refreshed successfully!', 'success');
+                setTimeout(hideStatus, 3000);
+            } catch (error) {
+                console.error('Error refreshing data:', error);
+                showStatus(`Error: ${error.message}`, 'error');
+                setTimeout(hideStatus, 5000);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '🔄 Refresh Data';
+            }
+        }
+
+        function displayWeatherData(data) {
+            const container = document.getElementById('weatherData');
+            if (!data || !data.data) {
+                container.innerHTML = '<div class="empty-state">No weather data available</div>';
+                return;
+            }
+
+            const d = data.data;
+            const meta = data.metadata;
+
+            let html = '';
+            
+            if (d.kp_index) {
+                html += `
+                    <div class="data-item">
+                        <div class="data-label">KP Index</div>
+                        ${formatValue(d.kp_index.value, '')} (${d.kp_index.level})
+                    </div>
+                `;
+            }
+
+            if (d.geomagnetic_storm) {
+                html += `
+                    <div class="data-item">
+                        <div class="data-label">Geomagnetic Storm</div>
+                        ${formatValue(d.geomagnetic_storm.level)}
+                    </div>
+                `;
+            }
+
+            if (d.solar_wind) {
+                html += `
+                    <div class="data-item">
+                        <div class="data-label">Solar Wind Speed</div>
+                        ${formatValue(d.solar_wind.speed, 'km/s')}
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">Solar Wind Density</div>
+                        ${formatValue(d.solar_wind.density, 'protons/cm³')}
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">Solar Wind Temperature</div>
+                        ${formatValue(d.solar_wind.temperature, 'K')}
+                    </div>
+                `;
+            }
+
+            if (d.radiation) {
+                html += `
+                    <div class="data-item">
+                        <div class="data-label">Radiation Alert Level</div>
+                        ${formatValue(d.radiation.alert_level)}
+                    </div>
+                `;
+            }
+
+            if (!html) {
+                html = '<div class="empty-state">No weather data available</div>';
+            } else {
+                html += `<div class="timestamp">Last updated: ${formatTimestamp(meta.timestamp)}</div>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function displaySolarData(data) {
+            const container = document.getElementById('solarData');
+            if (!data || !data.data) {
+                container.innerHTML = '<div class="empty-state">No solar data available</div>';
+                return;
+            }
+
+            const d = data.data;
+            const meta = data.metadata;
+
+            let html = '';
+
+            if (d.solar_flare) {
+                html += `
+                    <div class="data-item">
+                        <div class="data-label">Solar Flare Class</div>
+                        ${formatValue(d.solar_flare.class)}
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">Peak Time</div>
+                        ${formatValue(formatTimestamp(d.solar_flare.peak_time))}
+                    </div>
+                    ${d.solar_flare.source_location ? `
+                        <div class="data-item">
+                            <div class="data-label">Source Location</div>
+                            ${formatValue(d.solar_flare.source_location)}
+                        </div>
+                    ` : ''}
+                `;
+            } else {
+                html += '<div class="data-item"><div class="data-label">Solar Flare</div><span class="data-value none">No recent flares</span></div>';
+            }
+
+            if (d.solar_wind) {
+                html += `
+                    <div class="data-item">
+                        <div class="data-label">Solar Wind Bz</div>
+                        ${formatValue(d.solar_wind.bz, 'nT')}
+                    </div>
+                `;
+            }
+
+            if (!html) {
+                html = '<div class="empty-state">No solar data available</div>';
+            } else {
+                html += `<div class="timestamp">Last updated: ${formatTimestamp(meta.timestamp)}</div>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function displayExoplanetData(data) {
+            const container = document.getElementById('exoplanetData');
+            if (!data || !data.data || data.data.length === 0) {
+                container.innerHTML = '<div class="empty-state">No exoplanet data available</div>';
+                return;
+            }
+
+            const exoplanet = data.data[0];
+            const meta = data.metadata;
+
+            let html = `
+                <div class="data-item">
+                    <div class="data-label">Planet Name</div>
+                    ${formatValue(exoplanet.pl_name)}
+                </div>
+                <div class="data-item">
+                    <div class="data-label">Host Star</div>
+                    ${formatValue(exoplanet.hostname)}
+                </div>
+                <div class="data-item">
+                    <div class="data-label">Discovery Method</div>
+                    ${formatValue(exoplanet.discoverymethod)}
+                </div>
+                <div class="data-item">
+                    <div class="data-label">Discovery Year</div>
+                    ${formatValue(exoplanet.disc_year)}
+                </div>
+            `;
+
+            if (exoplanet.pl_rade) {
+                html += `
+                    <div class="data-item">
+                        <div class="data-label">Planet Radius</div>
+                        ${formatValue(exoplanet.pl_rade, 'Earth radii')}
+                    </div>
+                `;
+            }
+
+            if (exoplanet.pl_bmasse) {
+                html += `
+                    <div class="data-item">
+                        <div class="data-label">Planet Mass</div>
+                        ${formatValue(exoplanet.pl_bmasse, 'Earth masses')}
+                    </div>
+                `;
+            }
+
+            if (exoplanet.pl_eqt) {
+                html += `
+                    <div class="data-item">
+                        <div class="data-label">Equilibrium Temperature</div>
+                        ${formatValue(exoplanet.pl_eqt, 'K')}
+                    </div>
+                `;
+            }
+
+            if (exoplanet.sy_dist) {
+                html += `
+                    <div class="data-item">
+                        <div class="data-label">Distance</div>
+                        ${formatValue(exoplanet.sy_dist, 'parsecs')}
+                    </div>
+                `;
+            }
+
+            html += `<div class="timestamp">Last updated: ${formatTimestamp(meta.timestamp)}</div>`;
+            container.innerHTML = html;
+        }
+
+        // Make refreshData globally accessible
+        window.refreshData = refreshData;
+
+        // Set up button click handler
+        function setupRefreshButton() {
+            const btn = document.getElementById('refreshBtn');
+            if (btn) {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    refreshData();
+                });
+                console.log('Refresh button event listener attached');
+            } else {
+                console.error('Refresh button not found');
+            }
+        }
+
+        // Load data on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            setupRefreshButton();
+            refreshData();
+        });
+    </script>
+</body>
+</html>
+
