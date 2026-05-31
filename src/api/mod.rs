@@ -4,6 +4,7 @@
 pub mod middleware;
 pub mod routes;
 pub mod handlers;
+pub mod ephemeris_handlers;
 pub mod rate_limit;
 pub mod auth_handlers;
 pub mod security;

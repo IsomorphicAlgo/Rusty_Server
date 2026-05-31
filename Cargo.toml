@@ -2,6 +2,7 @@
 name = "rusty-server"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.88"
 authors = ["MichaelHansen"]
 description = "Rust-based REST API service for fetching, caching, and serving space weather data"
 license = "MIT"
@@ -56,6 +57,9 @@ urlencoding = "2.1"
 # Caching
 moka = { version = "0.12", features = ["future"] }
 
+# Ephemerust — sibling checkout (Phase 0; see EPHEMERUST_INTEGRATION_PLAN.md). Expected layout: ../Ephemerust next to this repo.
+ephemerust = { path = "../Ephemerust" }
+
 [[bin]]
 name = "collect_training_data"
 path = "scripts/collect_training_data.rs"
@@ -70,3 +74,4 @@ tower = { version = "0.4", features = ["util"] }
 hyper = { version = "1", features = ["full"] }
 axum = { version = "0.7", features = ["macros"] }
 urlencoding = "2.1"
+sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "mysql"] }

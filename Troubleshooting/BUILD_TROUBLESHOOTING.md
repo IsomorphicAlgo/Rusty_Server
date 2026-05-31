@@ -1,5 +1,20 @@
 # Build Troubleshooting Guide
 
+## Rust / MSRV (Ephemerust dependency)
+
+This workspace pins **Rust 1.88** (`rust-toolchain.toml` and `package.rust-version` in `Cargo.toml`) to match **[Ephemerust](https://github.com/IsomorphicAlgo/Ephemerust)**. Older toolchains fail with an MSRV error when resolving `ephemerust`.
+
+**Fix:** From the repo root, `rustup` uses `rust-toolchain.toml` automatically. If the toolchain is missing:
+
+```powershell
+rustup toolchain install 1.88
+rustup show
+```
+
+See [`EPHEMERUST_INTEGRATION_PLAN.md`](../EPHEMERUST_INTEGRATION_PLAN.md) Phase 2.3.
+
+---
+
 ## Linker Error LNK1104
 
 If you're seeing this error:

@@ -1,5 +1,6 @@
 use axum::{
     routing::get,
+    routing::post,
     Router,
     Json,
     middleware,
@@ -15,6 +16,7 @@ use crate::AppState;
 use crate::config::Config;
 use super::handlers;
 use super::auth_handlers;
+use super::ephemeris_handlers;
 use super::rate_limit::rate_limit_middleware;
 use super::security::{create_cors_layer, create_request_size_limit_layer, security_headers_middleware};
 use crate::auth::auth_middleware;
@@ -46,6 +48,12 @@ pub fn create_router(state: AppState, config: Config) -> Router {
         .route("/api/v1/predictions/solar-flare", get(handlers::predict_solar_flare))
         .route("/api/v1/predictions/history", get(handlers::get_prediction_history))
         .route("/api/v1/predictions/accuracy", get(handlers::get_prediction_accuracy))
+        .route("/api/v1/ephemeris/time", post(ephemeris_handlers::ephemeris_time))
+        .route("/api/v1/ephemeris/position", post(ephemeris_handlers::ephemeris_position))
+        .route(
+            "/api/v1/ephemeris/satellite/track",
+            post(ephemeris_handlers::ephemeris_satellite_track),
+        )
         // API key management endpoints (these should require auth in production)
         .route("/api/v1/auth/keys", axum::routing::post(auth_handlers::generate_api_key))
         .route("/api/v1/auth/keys", axum::routing::get(auth_handlers::list_api_keys))

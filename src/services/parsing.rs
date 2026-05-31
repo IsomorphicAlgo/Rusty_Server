@@ -67,10 +67,41 @@ pub fn parse_solar_wind(mag_json: &Value, plasma_json: &Value) -> Result<Option<
     };
     
     // Get speed, density, temperature from plasma data (if available)
+    // Try multiple possible field names to handle different endpoint formats
     let (speed, density, temperature) = if let Some(entry) = extract_latest_active_reading(plasma_json) {
-        let speed = entry.get("speed").and_then(|v| v.as_f64()).unwrap_or(0.0);
-        let density = entry.get("density").and_then(|v| v.as_f64()).unwrap_or(0.0);
-        let temperature = entry.get("temperature").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        // Try common field name variations for different NOAA endpoint formats
+        // rtsw_plasma_1m.json uses: speed, density, temperature
+        // rtsw_wind_1m.json may use: v, n, t or other variations
+        let speed = entry.get("speed")
+            .or_else(|| entry.get("v"))
+            .or_else(|| entry.get("velocity"))
+            .or_else(|| entry.get("vx"))  // Some formats use vx, vy, vz components
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0);
+        
+        let density = entry.get("density")
+            .or_else(|| entry.get("n"))
+            .or_else(|| entry.get("n_p"))
+            .or_else(|| entry.get("np"))  // Alternative format
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0);
+        
+        let temperature = entry.get("temperature")
+            .or_else(|| entry.get("temp"))
+            .or_else(|| entry.get("t"))
+            .or_else(|| entry.get("tp"))  // Alternative format
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0);
+        
+        // Debug: Log if we found an entry but all values are 0 (might indicate wrong field names)
+        if speed == 0.0 && density == 0.0 && temperature == 0.0 {
+            // Log available keys for debugging (only in debug mode to avoid spam)
+            #[cfg(debug_assertions)]
+            if let Some(obj) = entry.as_object() {
+                let keys: Vec<&str> = obj.keys().map(|k| k.as_str()).collect();
+                warn!("Plasma entry found but all values are 0. Available fields: {:?}", keys);
+            }
+        }
         
         // Validate values are reasonable
         let speed = if speed < 0.0 || speed > 2000.0 {

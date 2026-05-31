@@ -1,34 +1,31 @@
 # Rusty Server
 
-A Rust-based REST API service for fetching, caching, and serving space weather data critical for satellite operations. This project complements the CLI_Astro_Calc project by providing real-time and historical space weather information.
+A Rust-based REST API service for fetching, caching, and serving space weather data critical for satellite operations. This project complements **[Ephemerust](https://github.com/IsomorphicAlgo/Ephemerust)** (astronomy and satellite geometry library/CLI) by providing real-time and historical space weather information and hosted calculation APIs.
 
 ## Project Status
 
-**Current Phase**: Phase 8 - Testing & Quality Assurance ✅ COMPLETE  
-**Completed Steps**: 
-- ✅ 1.1 (Project Structure & Dependencies)
-- ✅ 1.2 (Configuration System)
-- ✅ 1.3 (Logging & Error Handling)
-- ✅ 2.1 (Basic HTTP Server)
-- ✅ 2.2 (REST API Structure)
-- ✅ 2.3 (Data Models)
-- ✅ 3.1 (NOAA API Integration)
-- ✅ 3.2 (Data Parsing & Transformation)
-- ✅ 4.1 (Database Schema & Setup)
-- ✅ 4.2 (Database Operations)
-- ✅ 4.3 (Caching Layer)
-- ✅ 5.1 (Current Conditions Endpoint)
-- ✅ 5.2 (Historical Data Endpoint)
-- ✅ 5.3 (Alerts & Radiation Endpoints)
-- ✅ 6.1 (Rate Limiting)
-- ✅ 6.2 (Authentication & Authorization)
-- ✅ 6.3 (Security Hardening)
-- ✅ 7.1 (CLI Integration Planning)
-- ✅ 10.1 (NASA DONKI Integration - Solar Flares)
-- ✅ 10.2 (Exoplanet Archive Integration)
-- ✅ 10.3 (ML Model Integration - CPU-based)
+**Latest milestone**: Phases **1–6** (foundation through security), **Phase 8** (testing & QA), and **Phase 10.1–10.3** (DONKI solar flares, Exoplanet Archive, CPU ML) are **complete**. **Phase 9** (deployment & operations) is **not** started. **Web dashboard** is complete.
 
-**Next Step**: Phase 9 (Deployment & Operations) ✅ **Web UI Complete**
+**Completed steps** (see [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) for full detail):
+- ✅ 1.1–1.3 (Project structure, configuration, logging & errors)
+- ✅ 2.1–2.3 (HTTP server, REST API structure, data models)
+- ✅ 3.1–3.2 (NOAA integration, parsing & transformation)
+- ✅ 4.1–4.3 (Database schema, operations, caching)
+- ✅ 5.1–5.3 (Current conditions, historical data, alerts & radiation)
+- ✅ 6.1–6.3 (Rate limiting, authentication, security hardening)
+- ✅ 7.1 (Ephemerust integration planning)
+- ✅ 8.1–8.2 (Comprehensive tests, documentation)
+- ✅ 10.1 (NASA DONKI — solar flares / FLR)
+- ✅ 10.2 (Exoplanet Archive / TAP)
+- ✅ 10.3 (ML microservice — CPU / XGBoost)
+- ✅ **Ephemerust path + MSRV** — `ephemerust` `path = "../Ephemerust"`, Rust **1.88** (`rust-toolchain.toml`, `Cargo.toml` `rust-version`; see [`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md) Phases 2–2.3)
+- ✅ **Ephemerust doc alignment** (integration plan Phase 1 — product naming; sibling path `../Ephemerust` for Cargo `path`)
+
+**Next (high priority)**:
+1. **Phase 9 — Deployment & operations** — prod configs, systemd, backups, metrics/health, TLS/reverse proxy (see deployment section in the development plan).
+2. **Phase 11 — Satellite tracking** — TLE ingestion, catalog persistence, and decay/ML layers (see development plan; propagation already available via **Ephemerust** through [`/api/v1/ephemeris/...`](Guides/API_EPHEMERIS.md)).
+
+**Future roadmap**: Phase **11** (satellite / TLE / decay), **12** (Mars weather), **Surya** (GPU), and **Phase 13** extras are outlined in [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md).
 
 ### What's Been Completed
 
@@ -43,6 +40,7 @@ A Rust-based REST API service for fetching, caching, and serving space weather d
 - ✅ **Tests**: Comprehensive tests for configuration, logging, and error handling
 - ✅ **NOAA API Integration**: HTTP client with retry logic, error handling, and data fetching
 - ✅ **Service Layer**: NoaaClient service for fetching space weather data from NOAA
+- ✅ **Resilient Endpoint Handling**: Multiple fallback endpoints for plasma data (handles endpoint changes/deprecation)
 - ✅ **Application State**: State management for sharing services across handlers
 - ✅ **Data Parsing Module**: Dedicated parsing module with validation and error handling
 - ✅ **Data Transformation**: Robust parsing of NOAA JSON responses to internal models
@@ -74,14 +72,16 @@ A Rust-based REST API service for fetching, caching, and serving space weather d
 - ✅ **Web Dashboard**: Interactive web page displaying project summary and latest data (weather, solar, exoplanet)
 - ✅ **Data Refresh Endpoint**: API endpoint to force fresh data fetch and database storage
 - ✅ **Latest Exoplanet Endpoint**: API endpoint to retrieve the most recently synced exoplanet
-- ⏳ **CLI_Astro_Calc Server Integration**: Host CLI_Astro_Calc as server-based service (planned)
+- ✅ **Phase 8**: Broad test coverage (unit, integration, security), API and database guides
+- ✅ **Ephemerust-backed ephemeris API**: `ephemerust` (path dependency) + **`POST /api/v1/ephemeris/time`**, **`/position`**, **`/satellite/track`** — see [`Guides/API_EPHEMERIS.md`](Guides/API_EPHEMERIS.md) and [`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md)
+- ⏳ **Phase 9 (Deployment)**: Production deployment, monitoring, backups (see development plan)
 - ⏳ **Surya Model Integration**: Host and integrate NASA/IBM Surya foundation model for advanced solar flare prediction (future)
 - ⏳ **Satellite Tracking**: TLE data integration and orbital mechanics calculations (future)
 - ⏳ **ML-Based Deorbit Prediction**: Machine learning algorithms for satellite re-entry prediction (future)
 
 **📋 See [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) for the complete development plan.**  
 **📚 See [OVERVIEW.md](OVERVIEW.md) for architecture and technical details.**  
-**📖 See [Guides/](Guides/) for setup guides, API documentation, and detailed instructions.**  
+**📖 See [Guides/](Guides/) for setup guides and instructions — including [Guides/API_EPHEMERIS.md](Guides/API_EPHEMERIS.md) (Ephemeris REST API contract + examples).**  
 **🔧 See [Troubleshooting/](Troubleshooting/) for troubleshooting guides.**  
 **🖥️ See [Guides/IPMI_SETUP_GUIDE.md](Guides/IPMI_SETUP_GUIDE.md) for remote server management (no monitor needed!).**
 
@@ -93,38 +93,36 @@ A Rust-based REST API service for fetching, caching, and serving space weather d
 
 ### Core Objectives
 
-1. **Host CLI_Astro_Calc**: Serve the CLI_Astro_Calc tool as a server-based service, making astronomical calculations accessible via API
+1. **Host Ephemerust-backed calculations**: Ephemerust is exposed via REST at **`/api/v1/ephemeris/...`** ([`Guides/API_EPHEMERIS.md`](Guides/API_EPHEMERIS.md), [`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md))
 2. **Space Weather & Solar Flare Databases**: Maintain comprehensive databases for space weather data and solar flare events from NOAA and NASA DONKI
 3. **Exoplanet Discovery Database**: Track and store exoplanet data from NASA's Exoplanet Archive
 4. **Machine Learning Predictions**: Implement and host ML models for solar flare prediction, starting with CPU-optimized models and progressing to the Surya foundation model
 5. **Satellite Deorbit Prediction** (Future): Calculate satellite orbital decay and predict re-entry times using machine learning algorithms
 
-This project is a continuation of the CLI_Astro_Calc Project, expanding it into a full server-based platform.
+This project extends the **Ephemerust** ecosystem (formerly *CLI_Astro_Calc*) into a full server-based data and API platform.
 
 ## Use Cases
 
 - **Satellite Operators**: Monitor space weather conditions and receive alerts for solar flares and geomagnetic storms
 - **Mission Planning**: Access historical space weather patterns for mission planning
-- **Astronomical Calculations**: Perform complex astronomical calculations via server-hosted CLI_Astro_Calc
+- **Astronomical Calculations**: Perform calculations via Ephemerust-backed HTTP APIs (see integration plan)
 - **Exoplanet Research**: Query and analyze exoplanet discovery data
 - **Space Weather Prediction**: Access ML-powered solar flare predictions with confidence scores
 - **Satellite Tracking** (Future): Track satellite positions and predict orbital decay and re-entry times
 
 ## Features
 
-### Planned Features
+### Implemented (summary)
 
-- **Rust-Based REST API**: Modern async web service using axum
-- **CLI_Astro_Calc Server**: Host astronomical calculation tool as server-based service
-- **Data Fetching**: Integration with NOAA Space Weather API and NASA DONKI API
-- **Exoplanet Database**: Integration with NASA Exoplanet Archive via TAP protocol
-- **Local Caching**: Reduce API calls and improve response times
-- **REST Endpoints**: Clean API for querying current conditions, historical data, and exoplanets
-- **Data Storage**: Historical data storage in MySQL (space weather, solar flares, exoplanets)
-- **Machine Learning**: CPU-optimized solar flare prediction models (XGBoost), future Surya integration
-- **Satellite Tracking** (Future): TLE data integration, orbital mechanics calculations, ML-based deorbit prediction
-- **Production Features**: Rate limiting and authentication
-- **Deployment**: Self-hosted on personal server rack
+The **axum** REST API, **NOAA** and **DONKI** ingestion, **Exoplanet Archive** TAP integration, **MySQL** storage, **moka** caching, **rate limiting** and **API key** auth, **web dashboard**, **CPU ML** predictions (Python microservice), and **Ephemerust-backed ephemeris** (`POST /api/v1/ephemeris/...`) are implemented. Details are in **Current Implementation** below and in [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md).
+
+### Still planned or in progress
+
+- **Phase 9** — deployment scripts, systemd, observability, production DB, TLS, backups
+- **ML** — optional Surya / GPU path; tuning and richer prediction UI over time
+- **Satellite catalog / TLE persistence / decay ML** (Phase 11 — propagation MVP already via **`/api/v1/ephemeris/satellite/track`**)
+- **Mars weather** (Phase 12)
+- **Phase 13** — e.g. retrograde calculator, real-time discovery streams
 
 ### Current Implementation
 
@@ -170,7 +168,8 @@ This project is a continuation of the CLI_Astro_Calc Project, expanding it into 
 
 ### Prerequisites
 
-- Rust toolchain (latest stable)
+- Rust **1.88+** (required: matches **Ephemerust** and `rust-toolchain.toml` / `Cargo.toml` `rust-version`; see [`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md) Phase 2.3 and [Troubleshooting/BUILD_TROUBLESHOOTING.md](Troubleshooting/BUILD_TROUBLESHOOTING.md))
+- **Ephemerust** as a **sibling repo** at `../Ephemerust` (same parent directory as this repo; e.g. `C:\Users\micha\Rust\Ephemerust` next to `C:\Users\micha\Rust\Rusty_Server` — required for the `ephemerust` path dependency; see integration plan Phase 0)
 - MySQL (for database) - **See [Guides/MYSQL_SETUP_GUIDE.md](Guides/MYSQL_SETUP_GUIDE.md)**
 - Git (for version control)
 
@@ -237,7 +236,6 @@ RUSTY_SERVER__NOAA__BASE_URL=https://services.swpc.noaa.gov
 - **DONKI API**: Base URL, API key (required), timeout
 - **Exoplanet Archive**: Base URL, timeout (TAP service, no API key required)
 - **ML Service**: Base URL, timeout, enabled flag (Python microservice)
-- **ML Service**: Base URL, timeout, enabled flag (Python microservice)
 - **Cache**: TTL values, size limits
 - **Rate Limiting**: Requests per minute/hour, burst size
 - **Authentication**: JWT secret, token expiry, require auth
@@ -301,12 +299,12 @@ cargo test
 # Run only unit tests
 cargo test --lib
 
-# Run only integration tests
-cargo test --test
+# Run a single integration test target (example: ephemeris, no MySQL required)
+cargo test --test ephemeris_api_test
 ```
 
-**Test Results**: 70+ tests passing
-- 48 unit tests (models, config, errors, logging, cache, auth, parsing)
+**Test Results**: 80+ tests passing (varies by target)
+- 49+ unit tests (models, config, errors, logging, cache, auth, parsing, ephemeris handler unit test)
   - 7 authentication unit tests (API key generation, validation, middleware)
   - 9 DONKI parsing and client tests
 - 20 API integration tests (current conditions, historical data, alerts, radiation)
@@ -314,6 +312,7 @@ cargo test --test
 - 2 health check tests
 - 6 authentication integration tests (require database connection)
 - 11 security tests (headers, CORS, request limits, SQL injection, XSS, path traversal, input validation)
+- 10 ephemeris integration tests (`ephemeris_api_test`; Ephemerust-backed routes, lazy DB pool)
 
 ### Testing the API
 
@@ -331,9 +330,23 @@ cargo run
 # Test health endpoint (in another terminal)
 Invoke-WebRequest -Uri http://localhost:3000/health -UseBasicParsing
 
+# Ephemeris (Ephemerust-backed): Julian date + GMST for an instant (no API key if auth.require_auth = false)
+Invoke-WebRequest -Uri http://localhost:3000/api/v1/ephemeris/time -Method POST -ContentType "application/json" -Body '{"utc":"2000-01-01T12:00:00Z"}' -UseBasicParsing
+
+# Same request with curl (bash / Git Bash on Windows)
+curl -s -X POST http://localhost:3000/api/v1/ephemeris/time -H "Content-Type: application/json" -d "{\"utc\":\"2000-01-01T12:00:00Z\"}"
+
+# Or use the test script (PowerShell)
+.\scripts\test_space_weather.ps1
+
+# Or use the test script (Linux/Mac)
+./scripts/test_space_weather.sh
+
 # Open web dashboard in browser
 # Navigate to http://localhost:3000/
 ```
+
+Full schemas, satellite `track` modes, limits, and errors: **[Guides/API_EPHEMERIS.md](Guides/API_EPHEMERIS.md)**.
 
 ## Web Dashboard
 
@@ -393,9 +406,10 @@ If I encounter linker errors (LNK1104), this is often caused by antivirus softwa
 
 ### Short-Term Goals
 
-- **CLI_Astro_Calc Server Integration**: Host the CLI_Astro_Calc tool as a server-based service, making astronomical calculations accessible via REST API
-- **Enhanced ML Predictions**: Improve solar flare prediction accuracy with additional training data and model tuning
-- **Exoplanet Discovery Notifications**: Implement automatic notifications for newly discovered exoplanets
+- **Phase 9 — Deployment & operations**: Environment-specific configs, systemd, backups, metrics and enhanced health checks, production cutover with TLS (see [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) § Phase 9).
+- **Ephemeris / Ephemerust**: **`/api/v1/ephemeris/...`** is live; see [Guides/API_EPHEMERIS.md](Guides/API_EPHEMERIS.md) and [`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md) Phase 5 for doc polish.
+- **Enhanced ML predictions**: More training data and tuning for the CPU model.
+- **Exoplanet discovery notifications**: Automatic notifications for newly synced or notable discoveries (see development plan periodic-sync notes).
 
 ### Long-Term Goals
 
@@ -414,9 +428,10 @@ If I encounter linker errors (LNK1104), this is often caused by antivirus softwa
 ### Technical Roadmap
 
 See [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) for detailed implementation plans, including:
-- Phase 11: Satellite Tracking & Orbital Decay
-- Phase 12: Mars Weather Forecasting
-- Surya ML Integration details in `Guides/SURYA_ML_INTEGRATION_PLAN.md`
+- **Phase 9**: Deployment & operations
+- **Phase 11**: Satellite tracking & orbital decay
+- **Phase 12**: Mars weather forecasting
+- **Surya / GPU**: [Guides/SURYA_ML_INTEGRATION_PLAN.md](Guides/SURYA_ML_INTEGRATION_PLAN.md)
 
 ## Contributing
 
@@ -429,11 +444,11 @@ MIT License - see LICENSE file for details
 ## Acknowledgments
 
 - NOAA Space Weather Prediction Center for data sources
-- CLI_Astro_Calc project for inspiration and integration
+- [Ephemerust](https://github.com/IsomorphicAlgo/Ephemerust) for inspiration and integration
 - Rust community for excellent tooling and libraries
 
 ---
 
-**Status**: Active Development  
-**Last Updated**: 2024  
+**Status**: Active development — Phase 10.3 + ephemeris API (Priority E MVP) complete; next: **Phase 9 (deployment)** and/or **Phase 11** (TLE catalog / persistence).  
+**Last updated**: May 2026 — Ephemeris handlers live (`Guides/API_EPHEMERIS.md`); Phases 1–5 of [EPHEMERUST_INTEGRATION_PLAN.md](EPHEMERUST_INTEGRATION_PLAN.md) reflected in docs.  
 **Version**: 0.1.0

@@ -4,7 +4,7 @@
 
 **Rusty Server** is a comprehensive astronomical data platform that serves as a centralized hub for space weather monitoring, exoplanet discovery tracking, and astronomical calculations. Think of it as your personal mission control center for understanding what's happening in space—from solar storms that could affect satellites to newly discovered planets orbiting distant stars.
 
-The project hosts multiple services and databases on a powerful home server, providing real-time data, historical archives, and predictive capabilities for space weather events. It's designed to complement the CLI_Astro_Calc tool by providing a server-based infrastructure that can be accessed from anywhere.
+The project hosts multiple services and databases on a powerful home server, providing real-time data, historical archives, and predictive capabilities for space weather events. It's designed to complement **[Ephemerust](https://github.com/IsomorphicAlgo/Ephemerust)** by providing a server-based infrastructure that can be accessed from anywhere, including REST access to ephemeris and satellite-geometry calculations per [`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md).
 
 ---
 
@@ -43,6 +43,8 @@ One of the most exciting aspects of this project is using machine learning to pr
 
 1. **Space Weather Monitoring**
    - Fetches real-time data from NOAA (National Oceanic and Atmospheric Administration)
+   - Resilient endpoint handling with multiple fallback options for plasma data
+   - Automatically tries alternative endpoints if primary endpoints are unavailable
    - Tracks solar flares from NASA's DONKI (Space Weather Database)
    - Monitors geomagnetic storms, radiation levels, and solar wind
    - Stores historical data for analysis and pattern recognition
@@ -54,7 +56,7 @@ One of the most exciting aspects of this project is using machine learning to pr
    - Provides query capabilities for researchers and enthusiasts
 
 3. **Astronomical Calculations Server**
-   - Hosts the CLI_Astro_Calc tool as a server-based service
+   - Hosts **Ephemerust**-backed calculation endpoints as part of the REST API (see [`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md))
    - Provides astronomical calculation capabilities via API
    - Enables complex calculations without requiring local installation
 
@@ -242,7 +244,7 @@ By analyzing historical TLE data, machine learning models can:
 │  └──────────────────┘  └──────────────────────────┘   │
 │                                                         │
 │  ┌──────────────────┐  ┌──────────────────────────┐   │
-│  │  CLI_Astro_Calc  │  │   ML Prediction Service   │   │
+│  │  Ephemerust API   │  │   ML Prediction Service   │   │
 │  │     Server       │  │   (Solar Flare Models)    │   │
 │  └──────────────────┘  └──────────────────────────┘   │
 │                                                         │
@@ -293,7 +295,7 @@ By analyzing historical TLE data, machine learning models can:
 
 ### Short-Term Goals
 
-- Complete integration of CLI_Astro_Calc as a server-based service
+- ✅ **Ephemerust via REST**: **`/api/v1/ephemeris/...`** implemented ([`Guides/API_EPHEMERIS.md`](Guides/API_EPHEMERIS.md), [`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md))
 - Expand exoplanet database with automatic discovery notifications
 - Improve solar flare prediction accuracy with more training data
 - Add visualization tools for space weather data

@@ -4,7 +4,8 @@
 
 ### Files Moved to `Guides/` (13 files)
 - API_DOCUMENTATION.md
-- CLI_INTEGRATION_PLAN.md
+- ~~CLI_INTEGRATION_PLAN.md~~ → **`EPHEMERUST_INTEGRATION_PLAN.md`** (repository root; Ephemerust integration — supersedes old CLI integration doc)
+- `Guides/API_EPHEMERIS.md` — **`/api/v1/ephemeris`** JSON API design (Phase 3; added after folder reorg)
 - DATABASE_CONFIGURATION.md
 - DATABASE_SCHEMA.md
 - DATABASE_SETUP_AND_VERIFICATION.md
@@ -81,7 +82,9 @@
 - ✅ DEVELOPMENT_PLAN.md - Master development plan
 - ✅ OVERVIEW.md - Architecture overview
 - ✅ SECURITY.md - Security guidelines
-- ✅ Cargo.toml - Rust project manifest
+- ✅ Cargo.toml - Rust project manifest (`rust-version` aligned with Ephemerust)
+- ✅ rust-toolchain.toml - Pins Rust 1.88 for this repo
+- ✅ EPHEMERUST_INTEGRATION_PLAN.md - Ephemerust integration gates and phases
 - ✅ config.example.toml - Example configuration
 - ✅ prompt.md - Original project prompt (you wanted to keep this)
 
@@ -91,9 +94,11 @@
 
 ```
 Rusty_Server/
+├── EPHEMERUST_INTEGRATION_PLAN.md   # Ephemerust ↔ Rusty_Server integration (approval-gated phases)
+├── rust-toolchain.toml              # Pins Rust 1.88 (Ephemerust MSRV)
 ├── Guides/                    # All setup and reference guides
 │   ├── API_DOCUMENTATION.md
-│   ├── CLI_INTEGRATION_PLAN.md
+│   ├── API_EPHEMERIS.md
 │   ├── DATABASE_*.md (4 files)
 │   ├── DONKI_*.md (2 files)
 │   ├── MYSQL_SETUP_GUIDE.md

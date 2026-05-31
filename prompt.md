@@ -2,7 +2,7 @@
 Rusty Server
 
 ### Introduction
-The purpose of this project is to Explore creating a Rust based operating system to Control my home server unit. This project is a continuation of the CLI_Astro_calc Project.
+The purpose of this project is to Explore creating a Rust based operating system to Control my home server unit. This project complements **Ephemerust** ([IsomorphicAlgo/Ephemerust](https://github.com/IsomorphicAlgo/Ephemerust)) as the server-side data and API platform (formerly described in relation to *CLI_Astro_Calc*).
 Overview
 Rusty_Server will host A REST API service for fetching, caching, and serving space weather data critical for satellite operations. This service will complement the CLI tool by providing real-time and historical space weather information.
 

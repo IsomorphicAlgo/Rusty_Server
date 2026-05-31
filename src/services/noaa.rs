@@ -164,17 +164,21 @@ impl NoaaClient {
     }
 
     /// Fetch solar wind data
+    /// 
+    /// Attempts to fetch solar wind data from multiple sources:
+    /// 1. Magnetic field data (Bz) from rtsw_mag_1m.json
+    /// 2. Plasma data (speed, density, temperature) from multiple possible endpoints
+    ///    - rtsw_plasma_1m.json (original)
+    ///    - rtsw_wind_1m.json (alternative that may contain plasma data)
+    ///    - rtsw_plasma.json (without _1m suffix)
+    ///    - rtsw/rtsw_plasma.json (alternative path)
+    /// 
+    /// If plasma data is not available from any endpoint, returns data with Bz only.
     async fn fetch_solar_wind(&self) -> Result<Option<SolarWind>> {
         let mag_url = format!("{}/json/rtsw/rtsw_mag_1m.json", self.base_url);
-        let plasma_url = format!("{}/json/rtsw/rtsw_plasma_1m.json", self.base_url);
         
-        // Fetch both magnetic field data and plasma data in parallel
-        let (mag_result, plasma_result) = tokio::join!(
-            self.fetch_with_retry(&mag_url),
-            self.fetch_with_retry(&plasma_url)
-        );
-        
-        let mag_json = match mag_result {
+        // Fetch magnetic field data first (required for Bz)
+        let mag_json = match self.fetch_with_retry(&mag_url).await {
             Ok(json) => json,
             Err(e) => {
                 warn!("Failed to fetch solar wind magnetic data: {}", e);
@@ -182,18 +186,68 @@ impl NoaaClient {
             }
         };
         
-        // Plasma data is optional - if it fails, we can still return Bz data
-        let plasma_json = match plasma_result {
-            Ok(json) => json,
-            Err(e) => {
-                warn!("Failed to fetch solar wind plasma data: {}, continuing with magnetic data only", e);
-                serde_json::Value::Null
+        // Try multiple plasma endpoints in order of preference
+        let plasma_endpoints = vec![
+            format!("{}/json/rtsw/rtsw_plasma_1m.json", self.base_url),
+            format!("{}/json/rtsw/rtsw_wind_1m.json", self.base_url),
+            format!("{}/json/rtsw/rtsw_plasma.json", self.base_url),
+            format!("{}/json/rtsw/rtsw_plasma_5m.json", self.base_url),
+        ];
+        
+        // Try each endpoint until one succeeds
+        let mut plasma_json = serde_json::Value::Null;
+        let mut plasma_source = None;
+        
+        for endpoint in &plasma_endpoints {
+            match self.fetch_with_retry(endpoint).await {
+                Ok(json) => {
+                    // Verify it's actually an array (valid plasma data)
+                    if json.is_array() && !json.as_array().unwrap().is_empty() {
+                        plasma_json = json;
+                        plasma_source = Some(endpoint.clone());
+                        info!("Successfully fetched plasma data from: {}", endpoint);
+                        break;
+                    } else {
+                        // Log structure for debugging if it's not an array
+                        if !json.is_array() {
+                            warn!("Endpoint {} returned non-array data (type: {:?}), trying next...", 
+                                  endpoint, 
+                                  if json.is_object() { "object" } else if json.is_null() { "null" } else { "other" });
+                        } else {
+                            warn!("Endpoint {} returned empty array, trying next...", endpoint);
+                        }
+                    }
+                }
+                Err(e) => {
+                    // Log but continue to next endpoint
+                    if e.to_string().contains("404") {
+                        // Don't log 404s for all endpoints, only if all fail
+                        continue;
+                    } else {
+                        warn!("Failed to fetch from {}: {}, trying next endpoint...", endpoint, e);
+                    }
+                }
             }
-        };
+        }
+        
+        // If no plasma endpoint worked, check if magnetic endpoint includes plasma data
+        if plasma_json.is_null() {
+            if let Some(plasma_from_mag) = Self::extract_plasma_from_magnetic(&mag_json) {
+                plasma_json = plasma_from_mag;
+                plasma_source = Some("magnetic endpoint (embedded)".to_string());
+                info!("Extracted plasma data from magnetic endpoint");
+            } else {
+                warn!("No plasma data available from any endpoint (tried {} endpoints), continuing with magnetic data only", plasma_endpoints.len());
+            }
+        }
         
         if let Some(wind) = parse_solar_wind(&mag_json, &plasma_json)? {
             if wind.speed == 0.0 && wind.density == 0.0 && wind.temperature == 0.0 {
-                warn!("Solar wind speed/density/temperature not available from NOAA API (plasma data may be unavailable)");
+                if plasma_source.is_none() {
+                    warn!("Solar wind speed/density/temperature not available from NOAA API (plasma data may be unavailable or endpoint changed)");
+                }
+            } else if let Some(ref source) = plasma_source {
+                info!("Plasma data source: {}", source);
             }
             info!("Fetched solar wind data: speed={} km/s, density={} cm^-3, temp={} K, bz={:?}", 
                   wind.speed, wind.density, wind.temperature, wind.bz);
@@ -202,6 +256,33 @@ impl NoaaClient {
             warn!("No solar wind data available");
             Ok(None)
         }
+    }
+    
+    /// Extract plasma data from magnetic endpoint if it contains plasma fields
+    /// 
+    /// Some NOAA endpoints may combine magnetic and plasma data.
+    /// This checks if the magnetic JSON contains plasma fields (speed, density, temperature).
+    fn extract_plasma_from_magnetic(mag_json: &serde_json::Value) -> Option<serde_json::Value> {
+        // Check if the magnetic data array contains plasma fields
+        if let Some(array) = mag_json.as_array() {
+            if array.is_empty() {
+                return None;
+            }
+            
+            // Check the first entry to see if it has plasma fields
+            if let Some(first_entry) = array.first() {
+                let has_speed = first_entry.get("speed").is_some();
+                let has_density = first_entry.get("density").is_some();
+                let has_temperature = first_entry.get("temperature").is_some();
+                
+                // If it has plasma fields, return the array as plasma data
+                if has_speed || has_density || has_temperature {
+                    return Some(mag_json.clone());
+                }
+            }
+        }
+        
+        None
     }
 
     /// Fetch active alerts

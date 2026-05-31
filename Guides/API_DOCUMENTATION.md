@@ -50,6 +50,12 @@ Authorization: Bearer rs_your_api_key_here
 
 ---
 
+## Ephemeris (Ephemerust-backed)
+
+Astronomical time, planet positions, and satellite propagation (TLE / SGP4 geometry) are documented in **[Guides/API_EPHEMERIS.md](API_EPHEMERIS.md)** (`POST` JSON only).
+
+---
+
 ## Endpoints
 
 ### Health Check
@@ -132,6 +138,8 @@ Returns the most recent space weather data available.
 - Data is cached for performance (see `metadata.cached`)
 - Falls back to database if API calls fail
 - Solar flare data comes from NASA DONKI (if configured)
+- Solar wind data (speed, density, temperature) is fetched from NOAA's plasma endpoint (`rtsw_plasma_1m.json`)
+- If plasma data is unavailable, only magnetic field data (Bz) will be returned, with speed/density/temperature set to 0.0
 
 ---
 
@@ -386,7 +394,10 @@ X-RateLimit-Reset: 1703078460
 
 ## Data Sources
 
-- **NOAA Space Weather Prediction Center** - KP index, solar wind data
+- **NOAA Space Weather Prediction Center**
+  - KP index: `planetary_k_index_1m.json`
+  - Solar wind magnetic field (Bz): `rtsw/rtsw_mag_1m.json`
+  - Solar wind plasma (speed, density, temperature): `rtsw/rtsw_plasma_1m.json`
 - **NASA DONKI** - Solar flare data (FLR endpoint)
 
 ---

@@ -5,7 +5,7 @@
 This development plan incorporates all planning information for Rusty_Server, a comprehensive astronomical data platform that serves as a centralized server infrastructure. The project hosts multiple services and databases:
 
 **Core Services:**
-- **CLI_Astro_Calc Server**: Hosts the CLI_Astro_Calc tool as a server-based service
+- **Ephemerust integration**: **[Ephemerust](https://github.com/IsomorphicAlgo/Ephemerust)** (astronomy and satellite geometry) is exposed via Rusty_Server **`/api/v1/ephemeris/...`** REST APIs — see [`Guides/API_EPHEMERIS.md`](Guides/API_EPHEMERIS.md) and [`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md)
 - **Space Weather & Solar Flare Databases**: Comprehensive databases for space weather data and solar flare events
 - **Exoplanet Discovery Database**: Tracks and stores exoplanet data from NASA's Exoplanet Archive
 
@@ -22,7 +22,7 @@ The plan maintains an iterative development approach while expanding into a comp
 ### Project Goals
 
 **Primary Objectives:**
-- **Host CLI_Astro_Calc**: Serve the CLI_Astro_Calc tool as a server-based service, making astronomical calculations accessible via REST API
+- **Host Ephemerust-backed calculations**: Expose the Ephemerust library via REST (`/api/v1/ephemeris/...` per [`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md))
 - **Space Weather & Solar Flare Databases**: Maintain comprehensive databases for space weather data and solar flare events from NOAA and NASA DONKI
 - **Exoplanet Discovery Database**: Track and store exoplanet data from NASA's Exoplanet Archive
 
@@ -86,6 +86,8 @@ The plan maintains an iterative development approach while expanding into a comp
 
 **✅ Phase 3: Data Fetching & Integration**
 - NOAA API integration with retry logic
+- Resilient endpoint handling with multiple fallback options
+- Automatic endpoint discovery for plasma data (handles endpoint changes/deprecation)
 - Data parsing and transformation
 - Service layer for fetching space weather data
 - Error handling for API failures
@@ -111,9 +113,9 @@ The plan maintains an iterative development approach while expanding into a comp
 - Security hardening (CORS, security headers, request size limits)
 - Security logging
 
-**✅ Phase 7.1: CLI Integration Planning**
-- Integration plan document created
-- Architecture designed for CLI_Astro_Calc integration
+**✅ Phase 7.1: Ephemerust integration planning**
+- Integration plan documented ([`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md))
+- Architecture designed for Ephemerust integration (Cargo path dependency; **`/api/v1/ephemeris/...`** routes implemented — see [`Guides/API_EPHEMERIS.md`](Guides/API_EPHEMERIS.md))
 
 **✅ Phase 8: Testing & Quality Assurance**
 - Comprehensive test suite (70+ tests)
@@ -190,15 +192,15 @@ Based on project goals and requirements, the following priorities have been esta
 - Add comparison visualizations
 - Display accuracy metrics
 
-### Priority E: CLI_Astro_Calc Server Integration
-**Status**: Planned
-- Host CLI_Astro_Calc tool as server-based service
+### Priority E: Ephemerust server integration
+**Status**: **MVP complete** — `POST /api/v1/ephemeris/time`, `/position`, `/satellite/track` ([`Guides/API_EPHEMERIS.md`](Guides/API_EPHEMERIS.md)); further slices remain in [`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md) backlog if needed
+- Host **Ephemerust** calculation capabilities via Rusty_Server’s REST API (Cargo dependency + `/api/v1/ephemeris/...`; see plan)
 - Provide astronomical calculations via REST API
 - Enable remote access to calculation capabilities
 - Integrate with existing Rusty Server infrastructure
 
 ### Priority F: Satellite Tracking & Deorbit Prediction
-**Status**: Future
+**Status**: Future — **use Ephemerust via `/api/v1/ephemeris/satellite/track` for propagation**; Phase 11 adds TLE feeds, storage, scheduling, decay, and ML layers ([`Guides/API_EPHEMERIS.md`](Guides/API_EPHEMERIS.md))
 - Integrate TLE (Two-Line Element) data sources
 - Implement orbital mechanics calculations (SGP4)
 - Calculate orbital decay rates
@@ -431,6 +433,8 @@ Based on project goals and requirements, the following priorities have been esta
 
 ### Phase 11: Satellite Tracking & Orbital Decay
 
+**Integration note (Ephemerust):** TLE parsing, SGP4 propagation, subpoint, look angles, pass prediction, and ground-track sampling for **client-supplied TLE text** are already provided by the **[Ephemerust](https://github.com/IsomorphicAlgo/Ephemerust)** library and exposed at **`POST /api/v1/ephemeris/satellite/track`** ([`Guides/API_EPHEMERIS.md`](Guides/API_EPHEMERIS.md)). Phase 11 work should **reuse that engine** for geometry where possible—focus new effort on **TLE sourcing**, **catalog/versioning in MySQL**, **scheduling**, **decay physics / ML** (11.2–11.3), and product-specific APIs—not a second SGP4 implementation inside Rusty_Server.
+
 #### Step 11.1: TLE Data Integration
 **Objective**: Integrate Two-Line Element (TLE) data for satellite tracking.
 
@@ -451,7 +455,7 @@ Based on project goals and requirements, the following priorities have been esta
 **Objective**: Implement orbital mechanics calculations for satellite position and decay.
 
 **Tasks**:
-- [ ] Research orbital mechanics libraries (SGP4, Orekit bindings, or custom implementation)
+- [ ] Research orbital mechanics libraries (SGP4, Orekit bindings, or custom implementation) — **prefer Ephemerust / existing `/api/v1/ephemeris/satellite/track` for propagation**; add libraries only for gaps Ephemerust does not cover
 - [ ] Implement satellite position calculation from TLE
 - [ ] Implement orbital decay calculation
 - [ ] Add atmospheric drag modeling (considering solar activity)
@@ -694,11 +698,9 @@ Based on project goals and requirements, the following priorities have been esta
    - ✅ Security tests
    - ✅ API documentation
 
-4. **Priority E: CLI_Astro_Calc Server Integration** - **NEXT**
-   - Host CLI_Astro_Calc tool as server-based service
-   - Provide astronomical calculations via REST API
-   - Enable remote access to calculation capabilities
-   - See `Guides/CLI_INTEGRATION_PLAN.md` for details
+4. ✅ **Priority E: Ephemerust server integration** — **MVP COMPLETE**
+   - ✅ `ephemerust` path dependency; **`POST /api/v1/ephemeris/time`**, **`/position`**, **`/satellite/track`**
+   - See [`Guides/API_EPHEMERIS.md`](Guides/API_EPHEMERIS.md) and [`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md)
 
 5. **Phase 9: Deployment & Operations** - **READY TO START**
    - Production deployment preparation
@@ -706,39 +708,39 @@ Based on project goals and requirements, the following priorities have been esta
    - Database configuration (currently using test database)
 
 ### Medium Priority (Enhanced Features)
-5. ✅ **Priority C: ML Integration** - **COMPLETE**
+6. ✅ **Priority C: ML Integration** - **COMPLETE**
    - ✅ Python microservice setup
    - ✅ XGBoost prediction model (CPU-optimized)
    - ✅ Data pipeline implementation
    - ✅ Training pipeline with historical data collection
 
-6. ✅ **Priority D: Predictions Display** - **COMPLETE**
+7. ✅ **Priority D: Predictions Display** - **COMPLETE**
    - ✅ Web UI with data display
    - ⏳ Comparison visualizations (future enhancement)
 
-7. ✅ **Phase 10.2: Exoplanet Archive Integration** - **COMPLETE**
-8. ✅ **Phase 10.3: ML Model Integration (CPU-Based)** - **COMPLETE**
-9. **Phase 11.1-11.2: Satellite Tracking** (TLE + calculations) - **Priority F**
-10. **Phase 12.1: Mars Weather Data Integration** - **Priority H**
+8. ✅ **Phase 10.2: Exoplanet Archive Integration** - **COMPLETE**
+9. ✅ **Phase 10.3: ML Model Integration (CPU-Based)** - **COMPLETE**
+10. **Phase 11.1-11.2: Satellite Tracking** (TLE + calculations) - **Priority F**
+11. **Phase 12.1: Mars Weather Data Integration** - **Priority H**
 
 ### High Priority (Advanced ML & Predictions)
-11. **Priority G: Surya Foundation Model Integration** - **Future (requires GPU)**
+12. **Priority G: Surya Foundation Model Integration** - **Future (requires GPU)**
     - Host and integrate NASA/IBM Surya foundation model
     - GPU-accelerated inference (RTX 2070 available)
     - Advanced solar flare prediction with 2-hour lead time
     - See `Guides/SURYA_ML_INTEGRATION_PLAN.md` for details
 
-12. **Priority F: Satellite Tracking & ML-Based Decay Prediction** - **Future**
+13. **Priority F: Satellite Tracking & ML-Based Decay Prediction** - **Future**
     - Phase 11.1-11.2: TLE data integration and orbital mechanics
     - Phase 11.3: ML-based decay prediction algorithms
     - Physics-guided neural networks for re-entry prediction
 
 ### Lower Priority (Future Enhancements)
-13. **Phase 12.2-12.3: Mars Weather Forecasting**
-14. **Additional Integrations** (Phase 13)
+14. **Phase 12.2-12.3: Mars Weather Forecasting**
+15. **Additional Integrations** (Phase 13)
 
 ### Future Enhancements
-13. **Phase 13: Additional Integrations**
+16. **Phase 13: Additional Integrations**
 
 ---
 
@@ -786,7 +788,7 @@ Based on project goals and requirements, the following priorities have been esta
 ### Priorities
 **Q**: Which features are most important for my use case?
 **A**: The project goals are:
-- **Primary**: Host CLI_Astro_Calc as a server-based service
+- **Primary**: Ephemerust-backed calculation APIs — **`/api/v1/ephemeris/...` MVP live** ([`Guides/API_EPHEMERIS.md`](Guides/API_EPHEMERIS.md); [`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md))
 - **Primary**: Maintain databases for exoplanet discovery, space weather, and solar flare data
 - **Advanced ML**: Host Surya libraries and create machine learning algorithms to predict solar flares
 - **Future**: Calculate satellite deorbit and possibly predict with machine learning algorithms
@@ -812,7 +814,7 @@ Based on project goals and requirements, the following priorities have been esta
 3. ✅ **Exoplanet Archive Integration** - Phase 10.2 - **COMPLETE**
 4. ✅ **Build Web UI** - Priority B (simple HTML/JS frontend) - **COMPLETE**
 5. ✅ **Set Up ML Infrastructure** - Priority C (CPU-based XGBoost) - **COMPLETE**
-6. ⏳ **CLI_Astro_Calc Server Integration** - Priority E - **NEXT**
+6. ✅ **Ephemerust server integration** - Priority E — **MVP COMPLETE** ([`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md), [`Guides/API_EPHEMERIS.md`](Guides/API_EPHEMERIS.md))
 7. ⏳ **Phase 9: Deployment & Operations** - **READY TO START**
 
 ### Short-term Goals (1-3 months)
@@ -820,11 +822,11 @@ Based on project goals and requirements, the following priorities have been esta
 - ✅ Complete Priority B (web UI) - **COMPLETE**
 - ✅ Complete Priority C (ML integration - CPU-based) - **COMPLETE**
 - ✅ Complete Phase 8 (testing) - **COMPLETE**
-- ⏳ Complete Priority E (CLI_Astro_Calc server integration) - **NEXT**
+- ✅ Complete Priority E (Ephemerust integration — **`/api/v1/ephemeris/...` MVP**; see [`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md)) - **COMPLETE**
 - ⏳ Complete Phase 9 (deployment) - **READY TO START**
 
 ### Long-term Vision
-- **Host CLI_Astro_Calc**: Server-based astronomical calculation service
+- **Host Ephemerust-backed services**: Astronomical and satellite-geometry calculations via REST at **`/api/v1/ephemeris/...`** ([`Guides/API_EPHEMERIS.md`](Guides/API_EPHEMERIS.md); [`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md))
 - **Comprehensive Databases**: Space weather, solar flares, and exoplanet discovery data
 - **Advanced ML Predictions**: 
   - Surya foundation model integration for solar flare prediction
@@ -849,21 +851,22 @@ Based on project goals and requirements, the following priorities have been esta
 
 **Note**: This plan is ambitious and can be implemented incrementally. Each phase can be completed independently, allowing for flexible development based on priorities and resources.
 
-**Last Updated**: 2024-12-20
+**Last Updated**: 2026-05-31
 **Status**: Active Development
-**Current Phase**: Phase 10.3 Complete, Ready for Priority E (CLI_Astro_Calc Integration) or Phase 9 (Deployment)
+**Current Phase**: Phase 10.3 + Ephemeris API (Priority E MVP) complete — **ready for Phase 9 (Deployment)** or Phase 11 (satellite catalog / TLE persistence)
 
 **Recent Completions**:
+- ✅ Phase 4 (implementation): Ephemeris HTTP handlers + integration tests ([`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md) Phase 4)
+- ✅ Phase 5 (docs): ReadMe / development plan / Ephemerust roadmap alignment ([`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md) Phase 5)
+- ✅ Phase 3 (design): Ephemeris API contract v0.1 — [`Guides/API_EPHEMERIS.md`](Guides/API_EPHEMERIS.md) ([`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md) Phase 3)
+- ✅ Phase 2 (Ephemerust): path dependency + **MSRV 1.88** + `rust-toolchain.toml` ([`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md) Phases 2–2.3)
+- ✅ Phase 1 (docs): Ephemerust naming sweep — `DEVELOPMENT_PLAN.md`, `FOLDER_ORGANIZATION_SUMMARY.md`, `prompt.md`, integration plan (see [`EPHEMERUST_INTEGRATION_PLAN.md`](EPHEMERUST_INTEGRATION_PLAN.md) Phase 1)
 - ✅ Phase 10.3: ML Model Integration (CPU-Based) - XGBoost model, Python microservice, prediction endpoints
 - ✅ Phase 10.2: Exoplanet Archive Integration (TAP client, database schema, API endpoints)
 - ✅ Phase 10.1: DONKI Solar Flare Integration (FLR endpoint)
 - ✅ Phase 8: Testing & Quality Assurance (70+ tests, comprehensive documentation)
 - ✅ Priority A: Solar Flare Data Acquisition
 - ✅ Priority C: ML Integration (CPU-based implementation)
-- ✅ Phase 8: Testing & Quality Assurance (70+ tests, comprehensive documentation)
-- ✅ Phase 10.1: DONKI Solar Flare Integration (FLR endpoint)
-- ✅ Phase 10.2: Exoplanet Archive Integration (TAP client, database schema, API endpoints)
-- ✅ Priority A: Solar Flare Data Acquisition
 - ✅ Database configuration (using test database for development)
 
 **Current Configuration**:
